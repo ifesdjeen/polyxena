@@ -20,6 +20,21 @@
 -define(OPCODE_AUTH_RESPONSE,  13).
 -define(OPCODE_AUTH_SUCCESS,   14).
 
+-define(FRAME_TYPE_REQUEST,   2#00000011).
+-define(FRAME_TYPE_RESPONSE,  16#83).
+
+-define(frame_part, 8/unsigned-integer).
+-define(frame_part_stream, 8/signed-integer).
 -define(short, 1/big-unsigned-unit:16).
 -define(int,   1/big-signed-unit:32).
 -define(long,  1/big-signed-unit:64).
+
+
+-record(frame, {
+          version  = ?FRAME_TYPE_REQUEST,
+          flags    = 0,
+          stream   = 1,
+          opcode,
+          length,
+          body =   <<>>
+         }).
