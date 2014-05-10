@@ -18,6 +18,11 @@ mymodule_test_() ->
                    [[<<4:?short>>, << "Key2" >>],
                     [<<6:?short>>, << "Value2" >>],
                     [<<4:?short>>, << "Key1" >>],
+                    [<<6:?short>>, << "Value1" >>]]]),
+     ?assertEqual(polyxena:cql_string_list([<< "Value1" >>, << "Value2" >>, << "Value3" >>]),
+                  [<<3:?short>>,
+                   [[<<6:?short>>, << "Value3" >>],
+                    [<<6:?short>>, << "Value2" >>],
                     [<<6:?short>>, << "Value1" >>]]])
     ].
 

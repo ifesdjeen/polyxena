@@ -5,26 +5,40 @@
 -export([
          init_client/2
          , cql_string/1
+         , cql_string_list/1
          , cql_map/1]).
 
 -compile(export_all).
 
--define(CQL_VERSION, <<"3.0.0">>).
+-include("cqldefs.hrl").
 
--define(OPCODE_STARTUP,     1).
+cql_int(Int)      when is_integer(Int)     -> <<Int:?int>>.
+cql_short(Short)  when is_integer(Short)   -> <<Short:?short>>.
+cql_long(Long)    when is_integer(Long)    -> <<Long:?long>>.
 
--define(short, 1/big-unsigned-unit:16).
-
-cql_string(Str) ->
+cql_string(Str) when is_binary(Str) ->
     Size = size(Str),
-    [<< Size:?short >>, Str].
+    [cql_short(Size), Str].
 
-cql_map(Map) ->
+cql_long_string(Str) when is_binary(Str) ->
+    Size = size(Str),
+    [cql_int(Size), Str].
+
+cql_string_list(List) when is_list(List) ->
+    Strings = lists:foldl(fun(Item, Acc) ->
+                                  [cql_string(Item) | Acc]
+                          end, [], List),
+    [cql_short(length(List)), Strings].
+
+
+cql_map(Map) when is_list(Map) ->
     {Length, Binaries} =
         lists:foldl(fun({Key, Value}, {Index, Acc}) ->
                             {Index + 1, [cql_string(Key), cql_string(Value) | Acc]}
                     end, {0, []}, Map),
-    [<<Length:?short>>, Binaries].
+    [cql_short(Length), Binaries].
+
+
 
 %% API
 
@@ -42,5 +56,6 @@ init_client(Host, Port) ->
         {error, Why} ->
             io:format("Can't connect to remote: '~w'~n", [Why])
     end.
+
 
 %% End of Module.
