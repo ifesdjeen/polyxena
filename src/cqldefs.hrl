@@ -30,6 +30,12 @@
 -define(CONSISTENCY_EACH_QUORUM,   10#7).
 -define(CONSISTENCY_LOCAL_ONE,     10#10).
 
+-define(RESULT_KIND_VOID,               10#1).
+-define(RESULT_KIND_ROWS,               10#2).
+-define(RESULT_KIND_SET_KEYSPACE,       10#3).
+-define(RESULT_KIND_PREPARED,           10#4).
+-define(RESULT_KIND_SCHEMA_CHANGE,      10#5).
+
 -define(FRAME_TYPE_REQUEST,    2#0).
 -define(FRAME_TYPE_RESPONSE,   2#1).
 

@@ -4,7 +4,7 @@
 
 -export([
          init_client/2
-         , cql_string/1
+         , cql_encode/2
          , cql_string_list/1
          , cql_map/1]).
 
@@ -12,33 +12,36 @@
 
 -include("cqldefs.hrl").
 
-cql_int(Int)      when is_integer(Int)     -> <<Int:?int>>.
-cql_short(Short)  when is_integer(Short)   -> <<Short:?short>>.
-cql_long(Long)    when is_integer(Long)    -> <<Long:?long>>.
+cql_encode(int, Int)      when is_integer(Int)     -> <<Int:?int>>;
 
-cql_string(Str) when is_binary(Str) ->
+cql_encode(short, Short)  when is_integer(Short)   -> <<Short:?short>>;
+
+cql_encode(long, Long)    when is_integer(Long)    -> <<Long:?long>>;
+
+cql_encode(string, Str) when is_binary(Str) ->
     Size = size(Str),
-    [cql_short(Size), Str].
+    [cql_encode(short, Size), Str].
 
 decode_cql_string(<<Length:?short, Str:Length/binary-unit:8, _/binary>>) ->
     binary_to_list(Str).
 
 cql_long_string(Str) when is_binary(Str) ->
     Size = size(Str),
-    [cql_int(Size), Str].
+    [cql_encode(int, Size), Str].
 
 cql_string_list(List) when is_list(List) ->
     Strings = lists:foldl(fun(Item, Acc) ->
-                                  [cql_string(Item) | Acc]
+                                  [cql_encode(string, Item) | Acc]
                           end, [], List),
-    [cql_short(length(List)), Strings].
+    [cql_encode(short, length(List)), Strings].
 
 cql_map(Map) when is_list(Map) ->
     {Length, Binaries} =
         lists:foldl(fun({Key, Value}, {Index, Acc}) ->
-                            {Index + 1, [cql_string(Key), cql_string(Value) | Acc]}
+                            {Index + 1, [cql_encode(string, Key),
+                                         cql_encode(string, Value) | Acc]}
                     end, {0, []}, Map),
-    [cql_short(Length), Binaries].
+    [cql_encode(short, Length), Binaries].
 
 
 
@@ -80,8 +83,14 @@ decode_body(Opcode, Body) ->
             <<ErrCode:?int, ErrMsg/binary>> = Body,
             {error, ErrCode, decode_cql_string(ErrMsg)};
         ?OPCODE_READY ->
-            {ok}
+            {ok};
+        ?OPCODE_RESULT ->
+            <<ResultKind:?int, Rest/binary>> = Body,
+            {ok, decode_result_kind(ResultKind, Rest)}
     end.
+
+decode_result_kind(?RESULT_KIND_SET_KEYSPACE, Body) ->
+    decode_cql_string(Body).
 
 
 receive_frame(Socket) ->
@@ -96,6 +105,7 @@ receive_frame(Socket) ->
                _/binary>>} ->
             decode_body(Opcode, Body)
     end.
+
 %% io:format("Type: ~p Version: ~p Flags ~p Stream: ~p  Opcode: ~p ~n Length ~p ~n Body ~p ~n",
 %%           [type_to_atom(Type),
 %%            Version, Flags, Stream,
@@ -119,7 +129,7 @@ query_frame(Query, Consistency) when is_list(Query) ->
 
 query_frame(Query, Consistency) ->
     #frame{opcode = ?OPCODE_QUERY,
-           body = [cql_long_string(Query), cql_short(Consistency)]}.
+           body = [cql_long_string(Query), cql_encode(int, Consistency)]}.
 
 establish_connection(Host, Port) ->
     Socket = polyxena:init_client(Host, Port),
@@ -133,7 +143,7 @@ establish_connection(Host, Port) ->
 
 tryout() ->
     Socket = establish_connection("192.168.60.15", 9042),
-    send_frame(Socket, query_frame("asdasd;", ?CONSISTENCY_ONE)),
+    send_frame(Socket, query_frame("use instana2;", ?CONSISTENCY_ONE)),
     io:format("Response: ~w  ~n", receive_frame(Socket)).
 
     %% polyxena:tryout().
