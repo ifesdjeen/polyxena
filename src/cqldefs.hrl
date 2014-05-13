@@ -8,17 +8,27 @@
 -define(OPCODE_STARTUP,        1).
 -define(OPCODE_READY,          2).
 -define(OPCODE_AUTHENTICATE,   3).
--define(OPCODE_OPTIONS,        4).
--define(OPCODE_SUPPORTED,      5).
--define(OPCODE_QUERY,          6).
--define(OPCODE_PREPARE,        7).
--define(OPCODE_EXECUTE,        8).
--define(OPCODE_REGISTER,       9).
--define(OPCODE_EVENT,          10).
--define(OPCODE_BATCH,          11).
--define(OPCODE_AUTH_CHALLENGE, 12).
+-define(OPCODE_CREDENTIALS,    4).
+-define(OPCODE_OPTIONS,        5).
+-define(OPCODE_SUPPORTED,      6).
+-define(OPCODE_QUERY,          7).
+-define(OPCODE_RESULT,         8).
+-define(OPCODE_PREPARE,        9).
+-define(OPCODE_EXECUTE,        10).
+-define(OPCODE_REGISTER,       11).
+-define(OPCODE_EVENT,          16#0C).
 -define(OPCODE_AUTH_RESPONSE,  13).
 -define(OPCODE_AUTH_SUCCESS,   14).
+
+-define(CONSISTENCY_ANY,           10#0).
+-define(CONSISTENCY_ONE,           10#1).
+-define(CONSISTENCY_TWO,           10#2).
+-define(CONSISTENCY_THREE,         10#3).
+-define(CONSISTENCY_QUORUM,        10#4).
+-define(CONSISTENCY_ALL,           10#5).
+-define(CONSISTENCY_LOCAL_QUORUM,  10#6).
+-define(CONSISTENCY_EACH_QUORUM,   10#7).
+-define(CONSISTENCY_LOCAL_ONE,     10#10).
 
 -define(FRAME_TYPE_REQUEST,    2#0).
 -define(FRAME_TYPE_RESPONSE,   2#1).
@@ -37,7 +47,7 @@
 
 
 -record(frame, {
-          type     = request,
+          type     = ?FRAME_TYPE_REQUEST,
           version  = ?FRAME_VERSION,
           flags    = 0,
           stream   = 1,
@@ -46,26 +56,9 @@
           body =   <<>>
          }).
 
+%%
+%% Debug-only
+%%
 
 type_to_atom(?FRAME_TYPE_REQUEST)  -> request;
 type_to_atom(?FRAME_TYPE_RESPONSE) -> response.
-
-type_from_atom(request)            -> ?FRAME_TYPE_REQUEST;
-type_from_atom(response)           -> ?FRAME_TYPE_RESPONSE.
-
-
-opcode_to_atom(?OPCODE_ERROR)             -> error;
-opcode_to_atom(?OPCODE_STARTUP)           -> startup;
-opcode_to_atom(?OPCODE_READY)             -> ready;
-opcode_to_atom(?OPCODE_AUTHENTICATE)      -> authenticate;
-opcode_to_atom(?OPCODE_OPTIONS)           -> options;
-opcode_to_atom(?OPCODE_SUPPORTED)         -> supported;
-opcode_to_atom(?OPCODE_QUERY)             -> query;
-opcode_to_atom(?OPCODE_PREPARE)           -> prepare;
-opcode_to_atom(?OPCODE_EXECUTE)           -> execute;
-opcode_to_atom(?OPCODE_REGISTER)          -> register;
-opcode_to_atom(?OPCODE_EVENT)             -> event;
-opcode_to_atom(?OPCODE_BATCH)             -> batch;
-opcode_to_atom(?OPCODE_AUTH_CHALLENGE)    -> auth_challenge;
-opcode_to_atom(?OPCODE_AUTH_RESPONSE)     -> auth_response;
-opcode_to_atom(?OPCODE_AUTH_SUCCESS)      -> auth_success.
