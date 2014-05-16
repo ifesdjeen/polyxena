@@ -4,6 +4,7 @@
 
 -export([
          init_client/2
+         , has_flag/2
          , cql_encode/2
          , cql_string_list/1
          , cql_map/1]).
@@ -11,6 +12,10 @@
 -compile(export_all).
 
 -include("cqldefs.hrl").
+
+has_flag(Flag, [Flag | _])   -> true;
+has_flag(Flag, [_ | More])  -> has_flag(Flag, More);
+has_flag(_, [])              -> false.
 
 cql_encode(int, Int)      when is_integer(Int)     -> <<Int:?int>>;
 
@@ -109,14 +114,24 @@ decode_result_kind(?RESULT_KIND_VOID, _) ->
     {void};
 
 %% QUESTION: ?? Can you conj to the tuple??
-decode_result_kind(?RESULT_KIND_ROWS, <<Flags:?int,
+decode_result_kind(?RESULT_KIND_ROWS, <<Flags0:?int,
                                         ColumnsCount:?int,
                                         Rest/binary>>) ->
-    {Flags, ColumnsCount, Rest}.
+    Flags = decode_rows_flags(Flags0),
+    HasGlobalTablesSpec = has_flag(global_tables_spec, Flags),
+    if HasGlobalTablesSpec ->
+            <<Length:?short,
+              Keyspace:Length/binary-unit:8,
+              LengthTn:?short,
+              Table:LengthTn/binary-unit:8,
+              Rest1/binary>> = Rest,
+            {binary_to_list(Keyspace), binary_to_list(Table)};
+        true -> []
+    end.
+%% {Flags, ColumnsCount, Rest}.
 
 decode_rows_flags(Flags) ->
     lists:foldl(fun({Flag, Mask}, Acc) ->
-                        io:format("a: ~s\n",[Acc]),
                         if Flags band Mask == Mask -> [Flag | Acc];
                            true -> Acc
                         end
