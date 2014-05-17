@@ -26,7 +26,7 @@ cql_encode(short, Short)  when is_integer(Short)   -> <<Short:?short>>;
 
 cql_encode(long, Long)    when is_integer(Long)    -> <<Long:?long>>;
 
-cql_encode(string, Str) when is_binary(Str) ->
+cql_encode(string, Str)   when is_binary(Str) ->
     [cql_encode(short, size(Str)), Str];
 
 cql_encode(long_string, Str) when is_binary(Str) ->
@@ -166,17 +166,46 @@ decode_col_specs(Remaining, Binary) -> decode_col_specs(Remaining, Binary, []).
 
 decode_col_specs(Remaining, Binary, Acc) ->
     if Remaining > 0 ->
-            <<Length:?short,
-              ColumnName:Length/binary-unit:8,
-              Option:?short,
-              Rest/binary>> = Binary,
-            decode_col_specs(Remaining - 1, Rest, [{ColumnName, Length} | Acc]);
-       true -> {Acc, Binary}
+            {ColumnName, Rest0} = consume(string, Binary),
+            {Option, Rest1}     = decode_col_spec(Rest0),
+            decode_col_specs(Remaining - 1, Rest1, [{ColumnName, Option} | Acc]);
+       Remaining == 0 -> {Acc, Binary}
     end.
 
+decode_col_spec(<<0:?short,
+                  Length:?short,
+                  CustomTypeName:Length/binary-unit:8,
+                  Rest/binary>>) ->
+    {{custom, CustomTypeName}, Rest};
 
+decode_col_spec(<<16#1:?short, Rest/binary>>) -> {ascii, Rest};
+decode_col_spec(<<16#2:?short, Rest/binary>>) -> {bigint, Rest};
+decode_col_spec(<<16#3:?short, Rest/binary>>) -> {blob, Rest};
+decode_col_spec(<<16#4:?short, Rest/binary>>) -> {boolean, Rest};
+decode_col_spec(<<16#5:?short, Rest/binary>>) -> {counter, Rest};
+decode_col_spec(<<16#6:?short, Rest/binary>>) -> {decimal, Rest};
+decode_col_spec(<<16#7:?short, Rest/binary>>) -> {double, Rest};
+decode_col_spec(<<16#8:?short, Rest/binary>>) -> {float, Rest};
+decode_col_spec(<<16#9:?short, Rest/binary>>) -> {int, Rest};
+decode_col_spec(<<16#A:?short, Rest/binary>>) -> {text, Rest};
+decode_col_spec(<<16#B:?short, Rest/binary>>) -> {timestamp, Rest};
+decode_col_spec(<<16#C:?short, Rest/binary>>) -> {uuid, Rest};
+decode_col_spec(<<16#D:?short, Rest/binary>>) -> {varchar, Rest};
+decode_col_spec(<<16#E:?short, Rest/binary>>) -> {varint, Rest};
+decode_col_spec(<<16#F:?short, Rest/binary>>) -> {timeuuid, Rest};
+decode_col_spec(<<16#10:?short, Rest/binary>>) -> {inet, Rest};
 
+decode_col_spec(<<16#20:?short, Rest/binary>>) ->
+    {SubType, Rest1} = decode_col_spec(Rest),
+    {list, SubType, Rest1};
 
+decode_col_spec(<<16#21:?short, Rest/binary>>) ->
+    {SubType, Rest1} = decode_col_spec(Rest),
+    {map, SubType, Rest1};
+
+decode_col_spec(<<16#22:?short, Rest/binary>>) ->
+    {SubType, Rest1} = decode_col_spec(Rest),
+    {set, SubType, Rest1}.
 
 receive_frame(Socket) ->
     case gen_tcp:recv(Socket, 0) of
