@@ -6,16 +6,19 @@
          init_client/2
          , has_flag/2
          , cql_encode/2
-         , cql_string_list/1
-         , cql_map/1]).
+        ]).
 
 -compile(export_all).
 
 -include("cqldefs.hrl").
 
 has_flag(Flag, [Flag | _])   -> true;
-has_flag(Flag, [_ | More])  -> has_flag(Flag, More);
+has_flag(Flag, [_ | More])   -> has_flag(Flag, More);
 has_flag(_, [])              -> false.
+
+%%
+%% Encoding
+%%
 
 cql_encode(int, Int)      when is_integer(Int)     -> <<Int:?int>>;
 
@@ -24,22 +27,19 @@ cql_encode(short, Short)  when is_integer(Short)   -> <<Short:?short>>;
 cql_encode(long, Long)    when is_integer(Long)    -> <<Long:?long>>;
 
 cql_encode(string, Str) when is_binary(Str) ->
-    [cql_encode(short, size(Str)), Str].
+    [cql_encode(short, size(Str)), Str];
 
-decode_cql_string(<<Length:?short, Str:Length/binary-unit:8, _/binary>>) ->
-    binary_to_list(Str).
-
-cql_long_string(Str) when is_binary(Str) ->
+cql_encode(long_string, Str) when is_binary(Str) ->
     Size = size(Str),
-    [cql_encode(int, Size), Str].
+    [cql_encode(int, Size), Str];
 
-cql_string_list(List) when is_list(List) ->
+cql_encode(string_list, List) when is_list(List) ->
     Strings = lists:foldl(fun(Item, Acc) ->
                                   [cql_encode(string, Item) | Acc]
                           end, [], List),
-    [cql_encode(short, length(List)), Strings].
+    [cql_encode(short, length(List)), Strings];
 
-cql_map(Map) when is_list(Map) ->
+cql_encode(map, Map) when is_list(Map) ->
     {Length, Binaries} =
         lists:foldl(fun({Key, Value}, {Index, Acc}) ->
                             {Index + 1, [cql_encode(string, Key),
@@ -48,6 +48,33 @@ cql_map(Map) when is_list(Map) ->
     [cql_encode(short, Length), Binaries].
 
 
+
+%%
+%% DECODING
+%%
+
+decode_cql_string(<<Length:?short, Str:Length/binary-unit:8, _/binary>>) ->
+    binary_to_list(Str).
+
+
+%%
+%% CONSUMPTION
+%%
+
+%% Decode functions may be just like consume functions just dropping out the tail
+consume(string, <<Length:?short, Str:Length/binary-unit:8, Rest/binary>>) ->
+    {Str, Rest};
+
+consume(int, <<Int:?int, Rest/binary>>) ->
+    {Int, Rest}.
+
+consume_rows_flags(<<Flags:?int, Rest/binary>>) ->
+    Res = lists:foldl(fun({Flag, Mask}, Acc) ->
+                              if Flags band Mask == Mask -> [Flag | Acc];
+                                 true -> Acc
+                              end
+                      end, [], [{global_tables_spec, 1}]),
+    {Res, Rest}.
 
 %% API
 
@@ -114,28 +141,40 @@ decode_result_kind(?RESULT_KIND_VOID, _) ->
     {void};
 
 %% QUESTION: ?? Can you conj to the tuple??
-decode_result_kind(?RESULT_KIND_ROWS, <<Flags0:?int,
-                                        ColumnsCount:?int,
-                                        Rest/binary>>) ->
-    Flags = decode_rows_flags(Flags0),
+%% basic iterations, such as partition, repeat, group by and so on?
+%% check out that emacs library, maybe it'll be some use here? Or maybe
+%% there is an equivalent already, which would be even better.
+%% How to call anonymous functions??
+
+decode_result_kind(?RESULT_KIND_ROWS, Binary) ->
+%% <<Flags0:?int,
+%%                                         ColumnsCount:?int,
+%%                                         Rest/binary>>) ->
+    {Flags, Rest0} = consume_rows_flags(Binary),
+    {ColumnsCount, Rest1} = consume(int, Rest0),
     HasGlobalTablesSpec = has_flag(global_tables_spec, Flags),
     if HasGlobalTablesSpec ->
-            <<Length:?short,
-              Keyspace:Length/binary-unit:8,
-              LengthTn:?short,
-              Table:LengthTn/binary-unit:8,
-              Rest1/binary>> = Rest,
-            {binary_to_list(Keyspace), binary_to_list(Table)};
+            {Keyspace, Rest2}    = consume(string, Rest1),
+            {Table, Rest3}       = consume(string, Rest2),
+            {ColumnSpecs, Rest4} = decode_col_specs(ColumnsCount, Rest3),
+            {binary_to_list(Keyspace), binary_to_list(Table), ColumnSpecs};
         true -> []
     end.
 %% {Flags, ColumnsCount, Rest}.
 
-decode_rows_flags(Flags) ->
-    lists:foldl(fun({Flag, Mask}, Acc) ->
-                        if Flags band Mask == Mask -> [Flag | Acc];
-                           true -> Acc
-                        end
-                end, [], [{global_tables_spec, 1}]).
+decode_col_specs(Remaining, Binary) -> decode_col_specs(Remaining, Binary, []).
+
+decode_col_specs(Remaining, Binary, Acc) ->
+    if Remaining > 0 ->
+            <<Length:?short,
+              ColumnName:Length/binary-unit:8,
+              Option:?short,
+              Rest/binary>> = Binary,
+            decode_col_specs(Remaining - 1, Rest, [{ColumnName, Length} | Acc]);
+       true -> {Acc, Binary}
+    end.
+
+
 
 
 
@@ -168,7 +207,7 @@ send_frame(Socket, Frame) ->
 
 startup_frame() ->
     #frame{opcode = ?OPCODE_STARTUP,
-           body = cql_map([{<<"CQL_VERSION">>, ?CQL_VERSION}])
+           body = cql_encode(map, [{<<"CQL_VERSION">>, ?CQL_VERSION}])
           }.
 
 query_frame(Query, Consistency) when is_list(Query) ->
@@ -176,7 +215,7 @@ query_frame(Query, Consistency) when is_list(Query) ->
 
 query_frame(Query, Consistency) ->
     #frame{opcode = ?OPCODE_QUERY,
-           body = [cql_long_string(Query),
+           body = [cql_encode(long_string, Query),
                    cql_encode(short, Consistency)
                    ]}.
 
@@ -208,7 +247,6 @@ tryout() ->
 
 
     %% polyxena:tryout().
-
 
 execute_cql(Connection, Query) ->
     send_frame(Connection, query_frame(Query, ?CONSISTENCY_ONE)),
