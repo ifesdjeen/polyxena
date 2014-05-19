@@ -61,6 +61,9 @@ decode_cql_string(<<Length:?short, Str:Length/binary-unit:8, _/binary>>) ->
 %% CONSUMPTION
 %%
 
+consume(bytes, <<Length:?int, Str:Length/binary-unit:8, Rest/binary>>) ->
+    {Str, Rest};
+
 %% Decode functions may be just like consume functions just dropping out the tail
 consume(string, <<Length:?short, Str:Length/binary-unit:8, Rest/binary>>) ->
     {Str, Rest};
@@ -147,9 +150,6 @@ decode_result_kind(?RESULT_KIND_VOID, _) ->
 %% How to call anonymous functions??
 
 decode_result_kind(?RESULT_KIND_ROWS, Binary) ->
-%% <<Flags0:?int,
-%%                                         ColumnsCount:?int,
-%%                                         Rest/binary>>) ->
     {Flags, Rest0} = consume_rows_flags(Binary),
     {ColumnsCount, Rest1} = consume(int, Rest0),
     HasGlobalTablesSpec = has_flag(global_tables_spec, Flags),
@@ -157,10 +157,43 @@ decode_result_kind(?RESULT_KIND_ROWS, Binary) ->
             {Keyspace, Rest2}    = consume(string, Rest1),
             {Table, Rest3}       = consume(string, Rest2),
             {ColumnSpecs, Rest4} = decode_col_specs(ColumnsCount, Rest3),
-            {binary_to_list(Keyspace), binary_to_list(Table), ColumnSpecs};
+            {RowsCount, Rest5}   = consume(int, Rest4),
+            {Rows, Rest6}        = decode_rows(RowsCount, Rest5, ColumnsCount,
+                                               ColumnSpecs),
+            {binary_to_list(Keyspace),
+             binary_to_list(Table),
+             ColumnSpecs,
+             RowsCount,
+             Rows};
         true -> []
     end.
 %% {Flags, ColumnsCount, Rest}.
+
+decode_rows(RemainingRows, Binary, ColumnsCount, ColumnSpecs) ->
+    decode_rows(RemainingRows, Binary, ColumnsCount, ColumnSpecs, []).
+
+decode_rows(RemainingRows, Binary, ColumnsCount, ColumnSpecs, Acc) ->
+    if RemainingRows > 0 ->
+            {Row, Remaining} = decode_row(ColumnsCount, Binary, ColumnSpecs),
+            decode_rows(RemainingRows - 1, Remaining, ColumnsCount, ColumnSpecs,
+                        [Row | Acc]);
+       RemainingRows == 0 -> {Acc, Binary}
+    end.
+
+decode_row(Remaining, Binary, ColumnSpecs) ->
+    decode_row(Remaining, Binary, ColumnSpecs, []).
+
+decode_row(Remaining, Binary, ColumnSpecs, Acc) ->
+    if Remaining > 0 ->
+            {ColumnName, ColumnType} = lists:nth(Remaining, ColumnSpecs),
+            {DecodedRow, RemainingBytes}  = consume(bytes, Binary),
+
+            decode_row(Remaining - 1, RemainingBytes,
+                       ColumnSpecs, [{ColumnName, DecodedRow} | Acc]);
+       Remaining == 0 ->
+            {Acc, Binary}
+    end.
+
 
 decode_col_specs(Remaining, Binary) -> decode_col_specs(Remaining, Binary, []).
 
@@ -168,7 +201,8 @@ decode_col_specs(Remaining, Binary, Acc) ->
     if Remaining > 0 ->
             {ColumnName, Rest0} = consume(string, Binary),
             {Option, Rest1}     = decode_col_spec(Rest0),
-            decode_col_specs(Remaining - 1, Rest1, [{ColumnName, Option} | Acc]);
+            decode_col_specs(Remaining - 1, Rest1,
+                             [{ColumnName, Option} | Acc]);
        Remaining == 0 -> {Acc, Binary}
     end.
 
@@ -266,6 +300,8 @@ tryout() ->
     execute_cql(Connection, "USE \"cassaforte_keyspace\";"),
     execute_cql(Connection, "CREATE TABLE \"users\" (age int, name varchar, PRIMARY KEY (name));"),
     execute_cql(Connection, "INSERT INTO \"users\" (name, age) VALUES ('Alex', 19);"),
+    execute_cql(Connection, "INSERT INTO \"users\" (name, age) VALUES ('Alex2', 20);"),
+    execute_cql(Connection, "INSERT INTO \"users\" (name, age) VALUES ('Alex3', 21);"),
     execute_cql(Connection, "SELECT * from users").
 
     %% execute_cql(Connection, "use my_keyspace;").
