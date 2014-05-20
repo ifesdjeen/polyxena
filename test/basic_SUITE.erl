@@ -26,11 +26,11 @@
 all() -> [test_encode_string, test_encode_map, test_encode_string_list].
 
 test_encode_string(_Config) ->
-    Result = polyxena:cql_encode(string, << "String" >>),
+    Result = polyxena_connection:cql_encode(string, << "String" >>),
     Result = [<<6:?short>>, << "String" >>].
 
 test_encode_map(_Config) ->
-    Result = polyxena:cql_encode(map, [{<< "Key1" >>, << "Value1" >>},
+    Result = polyxena_connection:cql_encode(map, [{<< "Key1" >>, << "Value1" >>},
                                        {<< "Key2" >>, << "Value2" >>}]),
     Result = [<<2:?short>>,
                [[<<4:?short>>, << "Key2" >>],
@@ -39,7 +39,7 @@ test_encode_map(_Config) ->
                 [<<6:?short>>, << "Value1" >>]]].
 
 test_encode_string_list(_Config) ->
-    Result = polyxena:cql_encode(string_list,
+    Result = polyxena_connection:cql_encode(string_list,
                                  [<< "Value1" >>, << "Value2" >>, << "Value3" >>]),
     Result = [<<3:?short>>,
               [[<<6:?short>>, << "Value3" >>],

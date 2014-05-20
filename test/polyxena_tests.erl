@@ -15,9 +15,9 @@ encoding_test_() ->
     ].
 
 helper_test_() ->
-    [?assertEqual(polyxena:has_flag(a, [c, b, a]), true),
-     ?assertEqual(polyxena:has_flag(e, [c, b, a]), false),
-     ?assertEqual(polyxena:has_flag(a, []), false)
+    [?assertEqual(polyxena_connection:has_flag(a, [c, b, a]), true),
+     ?assertEqual(polyxena_connection:has_flag(e, [c, b, a]), false),
+     ?assertEqual(polyxena_connection:has_flag(a, []), false)
     ].
 
 %% TODO: FIGURE OUT HOW TO WRITE MORE THAN A SINGLE TEST
