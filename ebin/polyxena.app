@@ -1,0 +1,7 @@
+{application,polyxena,
+             [{description,"An Erlang polyxena library"},
+              {vsn,"1"},
+              {modules,[polyxena]},
+              {registered,[]},
+              {applications,[kernel,stdlib]},
+              {env,[]}]}.

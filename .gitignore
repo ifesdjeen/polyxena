@@ -10,3 +10,4 @@
 /deps
 /.rebar
 *.beam
+logs/*
