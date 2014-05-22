@@ -13,19 +13,20 @@ start_link(Args) ->
     gen_server:start_link(?MODULE, Args, []).
 
 init(Args) ->
-    process_flag(trap_exit, true),
     Hostname = proplists:get_value(hostname, Args),
-    {ok, Conn} = polyxena_connection:connect(Hostname),
-    {ok, #state{conn=Conn}}.
+    Port = proplists:get_value(port, Args),
 
-handle_call({squery, Sql}, _From, #state{conn=Conn}=State) ->
-    {reply, pgsql:squery(Conn, Sql), State};
+    Connection = polyxena_connection:establish_connection(Hostname, Port),
+    %% io:format("asdasd ~n ~w"),
+    {ok, #state{conn=Connection}}.
 
-handle_call({equery, Stmt, Params}, _From, #state{conn=Conn}=State) ->
-    {reply, pgsql:equery(Conn, Stmt, Params), State};
 
-handle_call(_Request, _From, State) ->
+handle_call({execute_cql, Cql}, _From, #state{conn=Conn}=State) ->
+    {reply, polyxena_connection:execute_cql(Conn, Cql), State};
+
+handle_call(_Other, _From, State) ->
     {reply, ok, State}.
+
 
 handle_cast(_Msg, State) ->
     {noreply, State}.
