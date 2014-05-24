@@ -8,7 +8,7 @@
 
 -compile(export_all).
 
--include("cqldefs.hrl").
+-include("include/cqldefs.hrl").
 
 %%
 %% Impl

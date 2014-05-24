@@ -15,8 +15,10 @@ start_link(Args) ->
 init(Args) ->
     Hostname = proplists:get_value(hostname, Args),
     Port = proplists:get_value(port, Args),
-
+    Keyspace = proplists:get_value(keyspace, Args),
     Connection = polyxena_connection:establish_connection(Hostname, Port),
+    polyxena_connection:execute_cql(Connection, use_command(Keyspace)),
+
     %% io:format("asdasd ~n ~w"),
     {ok, #state{conn=Connection}}.
 
@@ -40,3 +42,8 @@ terminate(_Reason, #state{conn=Conn}) ->
 
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
+
+
+use_command(Keyspace) ->
+    Command = io_lib:format("USE ~p;", [Keyspace]),
+    lists:flatten(Command).

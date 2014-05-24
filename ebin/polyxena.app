@@ -6,6 +6,7 @@
                         polyxena_worker]},
               {registered,[polyxena]},
               {applications,[kernel,stdlib]},
-              {env,[{pools,[{pool1,[{size,1},{max_overflow,1}],
+              {env,[{pools,[{pool1,[{size,10},{max_overflow,1}],
                                    [{hostname,"192.168.60.15"},
-                                    {port,9042}]}]}]}]}.
+                                    {port,9042},
+                                    {keyspace,"cassaforte_keyspace"}]}]}]}]}.

@@ -11,3 +11,4 @@
 /.rebar
 *.beam
 logs/*
+*.dump

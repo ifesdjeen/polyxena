@@ -1,16 +1,19 @@
 -module(polyxena_tryout).
 
--export([tryout/0]).
+-export([tryout/0
+         ]).
 
 tryout() ->
     application:set_env(polyxena, pools,
-                        [{pool1, [{size, 2}, {max_overflow, 0}],
+                        [{pool1, [{size, 10}, {max_overflow, 0}],
                           [{hostname, "192.168.60.15"},
-                           {port, 9042}
+                           {port, 9042},
+                           {keyspace, "cassaforte_keyspace"}
                           ]}]),
 
     application:start(polyxena),
     polyxena_sup:start_link(),
+
     %% polyxena:execute_cql(pool1, "DROP KEYSPACE \"cassaforte_keyspace\";"),
     %% polyxena:execute_cql(pool1, "CREATE KEYSPACE \"cassaforte_keyspace\" WITH replication = {'class' : 'SimpleStrategy', 'replication_factor' : 1};"),
     polyxena:execute_cql(pool1, "USE \"cassaforte_keyspace\";"),
