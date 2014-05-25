@@ -44,19 +44,25 @@ consume(rows_flags, <<Flags:?int, Rest/binary>>) ->
                       end, [], [{global_tables_spec, 1}]),
     {Res, Rest};
 
-consume({col_specs, ColSpecCount}, Binary) -> decode_col_specs(ColSpecCount, Binary, []);
+consume({col_specs, ColSpecCount}, Binary) ->
+    polyxena_rows_decoder:decode_many(ColSpecCount, fun (CurrentBinary) ->
+                                                            {ColumnName, Rest0} = consume(string, CurrentBinary),
+                                                            {Option, Rest1}     = decode_col_spec(Rest0),
+                                                            {{ColumnName, Option}, Rest1}
+                                                    end, Binary);
 
 consume({rows, RowsCount, ColumnsCount, ColumnSpecs}, Binary) ->
-    polyxena_rows_decoder:decode_rows(RowsCount, Binary, ColumnsCount, ColumnSpecs, []).
+    polyxena_rows_decoder:decode_rows(RowsCount, Binary, ColumnsCount, ColumnSpecs).
 
-decode_col_specs(Remaining, Binary, Acc) ->
-    if Remaining > 0 ->
-            {ColumnName, Rest0} = consume(string, Binary),
-            {Option, Rest1}     = decode_col_spec(Rest0),
-            decode_col_specs(Remaining - 1, Rest1,
-                             [{ColumnName, Option} | Acc]);
-       Remaining == 0 -> {Acc, Binary}
-    end.
+
+%% decode_col_specs(Remaining, Binary, Acc) ->
+%%     if Remaining > 0 ->
+%%             {ColumnName, Rest0} = consume(string, Binary),
+%%             {Option, Rest1}     = decode_col_spec(Rest0),
+%%             decode_col_specs(Remaining - 1, Rest1,
+%%                              [{ColumnName, Option} | Acc]);
+%%        Remaining == 0 -> {Acc, Binary}
+%%     end.
 
 
 %%
@@ -121,8 +127,6 @@ consume_specs(Binary, Spec) ->
                                          {[Decoded | Acc], Rest}
                                  end, {[], Binary}, Spec),
     {lists:reverse(Result), Rest}.
-
-decode_col_specs(Remaining, Binary) -> decode_col_specs(Remaining, Binary, []).
 
 decode_col_spec(<<0:?short,
                   Length:?short,

@@ -1,19 +1,34 @@
 -module(polyxena_rows_decoder).
 
--export([decode_rows/5
+-export([decode_rows/4
         ]).
 
 -compile(export_all).
 
 -include("include/cqldefs.hrl").
 
-decode_rows(RemainingRows, Binary, ColumnsCount, ColumnSpecs, Acc) ->
-    if RemainingRows > 0 ->
-            {Row, Remaining} = decode_row(ColumnsCount, Binary, ColumnSpecs),
-            decode_rows(RemainingRows - 1, Remaining, ColumnsCount, ColumnSpecs,
-                        [Row | Acc]);
-       RemainingRows == 0 -> {Acc, Binary}
+decode_many(Remaining, Fn, Binary) ->
+    decode_many(Remaining, Fn, Binary, []).
+
+decode_many(Remaining, Fn, Binary, Acc) ->
+    if Remaining > 0 ->
+            {Current, Rest} = Fn(Binary),
+            decode_many(Remaining - 1, Fn, Rest, [Current | Acc]);
+       Remaining == 0 -> {Acc, Binary}
     end.
+
+decode_rows(RowsCount, Binary, ColumnsCount, ColumnSpecs) ->
+    decode_many(RowsCount, fun (CurrentBinary) ->
+                                   decode_row(ColumnsCount, CurrentBinary, ColumnSpecs)
+                           end, Binary).
+
+%% decode_rows(RemainingRows, Binary, ColumnsCount, ColumnSpecs, Acc) ->
+%%     if RemainingRows > 0 ->
+%%             {Row, Remaining} = decode_row(ColumnsCount, Binary, ColumnSpecs),
+%%             decode_rows(RemainingRows - 1, Remaining, ColumnsCount, ColumnSpecs,
+%%                         [Row | Acc]);
+%%        RemainingRows == 0 -> {Acc, Binary}
+    %% end.
 
 decode_row(Remaining, Binary, ColumnSpecs) ->
     decode_row(Remaining, Binary, ColumnSpecs, []).
