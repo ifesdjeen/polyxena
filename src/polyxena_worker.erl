@@ -37,7 +37,7 @@ handle_info(_Info, State) ->
     {noreply, State}.
 
 terminate(_Reason, #state{conn=Conn}) ->
-    ok = pgsql:close(Conn),
+    %% ok = pgsql:close(Conn),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->

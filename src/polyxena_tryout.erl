@@ -1,7 +1,7 @@
 -module(polyxena_tryout).
 
 -export([tryout/0
-         ]).
+        ]).
 
 tryout() ->
     application:set_env(polyxena, pools,

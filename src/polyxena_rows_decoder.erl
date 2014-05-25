@@ -1,15 +1,11 @@
 -module(polyxena_rows_decoder).
 
--export([decode_rows/4
+-export([decode_rows/5
         ]).
 
 -compile(export_all).
 
--include("cqldefs.hrl").
-
-%% Decodes an entire row
-decode_rows(RemainingRows, Binary, ColumnsCount, ColumnSpecs) ->
-    decode_rows(RemainingRows, Binary, ColumnsCount, ColumnSpecs, []).
+-include("include/cqldefs.hrl").
 
 decode_rows(RemainingRows, Binary, ColumnsCount, ColumnSpecs, Acc) ->
     if RemainingRows > 0 ->
