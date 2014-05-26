@@ -45,24 +45,44 @@ consume(rows_flags, <<Flags:?int, Rest/binary>>) ->
     {Res, Rest};
 
 consume({col_specs, ColSpecCount}, Binary) ->
-    polyxena_rows_decoder:decode_many(ColSpecCount, fun (CurrentBinary) ->
-                                                            {ColumnName, Rest0} = consume(string, CurrentBinary),
-                                                            {Option, Rest1}     = decode_col_spec(Rest0),
-                                                            {{ColumnName, Option}, Rest1}
-                                                    end, Binary);
+    consume_many(ColSpecCount, fun (_, CurrentBinary) ->
+                                       {ColumnName, Rest0} = consume(string, CurrentBinary),
+                                       {Option, Rest1}     = decode_col_spec(Rest0),
+                                       {{ColumnName, Option}, Rest1}
+                               end, Binary);
 
 consume({rows, RowsCount, ColumnsCount, ColumnSpecs}, Binary) ->
-    polyxena_rows_decoder:decode_rows(RowsCount, Binary, ColumnsCount, ColumnSpecs).
+    consume_many(RowsCount, fun (_, CurrentBinary) ->
+                                    consume({row, ColumnsCount, ColumnSpecs}, CurrentBinary)
+                           end, Binary);
+
+consume(bytes, <<Length:?int, Str:Length/binary-unit:8, Rest/binary>>) ->
+    {Str, Rest};
+
+consume({column, ColumnIndex, ColumnSpecs}, Binary) ->
+    {ColumnNameRaw, ColumnType}   = lists:nth(ColumnIndex, ColumnSpecs),
+    {DecodedRow, Rest}            = consume(bytes, Binary),
+    Value                         = bytes_to_type(ColumnType, DecodedRow),
+    ColumnName                    = column_name_to_str(ColumnNameRaw),
+    {{ColumnName, Value}, Rest};
+
+consume({row, ColumnsCount, ColumnSpecs}, Binary) ->
+    consume_many(ColumnsCount,
+                 fun (ColumnsCurrent, CurrentBinary) ->
+                         consume({column, ColumnsCurrent, ColumnSpecs}, CurrentBinary)
+                 end,
+                 Binary).
 
 
-%% decode_col_specs(Remaining, Binary, Acc) ->
-%%     if Remaining > 0 ->
-%%             {ColumnName, Rest0} = consume(string, Binary),
-%%             {Option, Rest1}     = decode_col_spec(Rest0),
-%%             decode_col_specs(Remaining - 1, Rest1,
-%%                              [{ColumnName, Option} | Acc]);
-%%        Remaining == 0 -> {Acc, Binary}
-%%     end.
+bytes_to_type({custom, _}, Bytes) -> Bytes;
+bytes_to_type(ascii, <<Bytes/binary>>)       -> binary_to_list(Bytes);
+bytes_to_type(varchar, <<Bytes/binary>>)     -> binary_to_list(Bytes);
+bytes_to_type(int, <<Int:?int>>)  -> Int.
+
+
+column_name_to_str(<<Bytes/binary>>)         -> binary_to_list(Bytes).
+
+
 
 
 %%
@@ -120,6 +140,20 @@ decode_result_kind(?RESULT_KIND_ROWS, Binary) ->
     end.
 
 %% {Flags, ColumnsCount, Rest}.
+
+%%
+%% Consumption Helper Function
+%%
+
+consume_many(Remaining, Fn, Binary) ->
+    consume_many(Remaining, Fn, Binary, []).
+
+consume_many(Remaining, Fn, Binary, Acc) ->
+    if Remaining > 0 ->
+            {Current, Rest} = Fn(Remaining, Binary),
+            consume_many(Remaining - 1, Fn, Rest, [Current | Acc]);
+       Remaining == 0 -> {Acc, Binary}
+    end.
 
 consume_specs(Binary, Spec) ->
     {Result, Rest} = lists:foldl(fun(Item, {Acc, CurrentBinary}) ->
