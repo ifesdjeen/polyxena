@@ -1,0 +1,8 @@
+#+STARTUP: showall
+#+TAGS: { @Idea(i) }
+
+* TODO Add prepared queires
+* TODO Add collection types
+* TODO Figure out an API for bootstrapping
+* TODO Add Event subscription
+* TODO Add all types
