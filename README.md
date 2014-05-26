@@ -21,7 +21,7 @@ I haven't seen one that uses poolboy.
 
 # Example usage
 
-```erl
+```erlang
 application:set_env(polyxena, pools,
                     [{pool1, [{size, 10}, {max_overflow, 0}],
                       [{hostname, "192.168.60.15"},
