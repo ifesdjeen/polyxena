@@ -45,16 +45,16 @@ consume(rows_flags, <<Flags:?int, Rest/binary>>) ->
     {Res, Rest};
 
 consume({col_specs, ColSpecCount}, Binary) ->
-    consume_many(ColSpecCount, fun (_, CurrentBinary) ->
-                                       {ColumnName, Rest0} = consume(string, CurrentBinary),
-                                       {Option, Rest1}     = decode_col_spec(Rest0),
-                                       {{ColumnName, Option}, Rest1}
-                               end, Binary);
+    consume_many(ColSpecCount,
+                 fun (_, CurrentBinary) ->
+                         {Spec, Rest} = consume_specs(CurrentBinary, [string, col_spec]),
+                         {list_to_tuple(Spec), Rest}
+                 end, Binary);
 
 consume({rows, RowsCount, ColumnsCount, ColumnSpecs}, Binary) ->
     consume_many(RowsCount, fun (_, CurrentBinary) ->
                                     consume({row, ColumnsCount, ColumnSpecs}, CurrentBinary)
-                           end, Binary);
+                                end, Binary);
 
 consume(bytes, <<Length:?int, Str:Length/binary-unit:8, Rest/binary>>) ->
     {Str, Rest};
@@ -71,7 +71,41 @@ consume({row, ColumnsCount, ColumnSpecs}, Binary) ->
                  fun (ColumnsCurrent, CurrentBinary) ->
                          consume({column, ColumnsCurrent, ColumnSpecs}, CurrentBinary)
                  end,
-                 Binary).
+                 Binary);
+
+consume(col_spec, Binary) ->
+    case Binary of
+        <<0:?short,
+          Length:?short,
+          CustomTypeName:Length/binary-unit:8,
+          Rest/binary>> -> {{custom, CustomTypeName}, Rest};
+
+        <<16#1:?short, Rest/binary>> -> {ascii, Rest};
+        <<16#2:?short, Rest/binary>> -> {bigint, Rest};
+        <<16#3:?short, Rest/binary>> -> {blob, Rest};
+        <<16#4:?short, Rest/binary>> -> {boolean, Rest};
+        <<16#5:?short, Rest/binary>> -> {counter, Rest};
+        <<16#6:?short, Rest/binary>> -> {decimal, Rest};
+        <<16#7:?short, Rest/binary>> -> {double, Rest};
+        <<16#8:?short, Rest/binary>> -> {float, Rest};
+        <<16#9:?short, Rest/binary>> -> {int, Rest};
+        <<16#A:?short, Rest/binary>> -> {text, Rest};
+        <<16#B:?short, Rest/binary>> -> {timestamp, Rest};
+        <<16#C:?short, Rest/binary>> -> {uuid, Rest};
+        <<16#D:?short, Rest/binary>> -> {varchar, Rest};
+        <<16#E:?short, Rest/binary>> -> {varint, Rest};
+        <<16#F:?short, Rest/binary>> -> {timeuuid, Rest};
+        <<16#10:?short, Rest/binary>> -> {inet, Rest};
+        <<16#20:?short, Rest/binary>> ->
+            {SubType, Rest1} = consume(col_spec, Rest),
+            {{list, SubType}, Rest1};
+        <<16#21:?short, Rest/binary>> ->
+            {SubType, Rest1} = consume(col_spec, Rest),
+            {{map, SubType}, Rest1};
+        <<16#22:?short, Rest/binary>> ->
+            {SubType, Rest1} = consume(col_spec, Rest),
+            {{set, SubType}, Rest1}
+    end.
 
 
 bytes_to_type({custom, _}, Bytes) -> Bytes;
@@ -161,41 +195,6 @@ consume_specs(Binary, Spec) ->
                                          {[Decoded | Acc], Rest}
                                  end, {[], Binary}, Spec),
     {lists:reverse(Result), Rest}.
-
-decode_col_spec(<<0:?short,
-                  Length:?short,
-                  CustomTypeName:Length/binary-unit:8,
-                  Rest/binary>>) ->
-    {{custom, CustomTypeName}, Rest};
-
-decode_col_spec(<<16#1:?short, Rest/binary>>) -> {ascii, Rest};
-decode_col_spec(<<16#2:?short, Rest/binary>>) -> {bigint, Rest};
-decode_col_spec(<<16#3:?short, Rest/binary>>) -> {blob, Rest};
-decode_col_spec(<<16#4:?short, Rest/binary>>) -> {boolean, Rest};
-decode_col_spec(<<16#5:?short, Rest/binary>>) -> {counter, Rest};
-decode_col_spec(<<16#6:?short, Rest/binary>>) -> {decimal, Rest};
-decode_col_spec(<<16#7:?short, Rest/binary>>) -> {double, Rest};
-decode_col_spec(<<16#8:?short, Rest/binary>>) -> {float, Rest};
-decode_col_spec(<<16#9:?short, Rest/binary>>) -> {int, Rest};
-decode_col_spec(<<16#A:?short, Rest/binary>>) -> {text, Rest};
-decode_col_spec(<<16#B:?short, Rest/binary>>) -> {timestamp, Rest};
-decode_col_spec(<<16#C:?short, Rest/binary>>) -> {uuid, Rest};
-decode_col_spec(<<16#D:?short, Rest/binary>>) -> {varchar, Rest};
-decode_col_spec(<<16#E:?short, Rest/binary>>) -> {varint, Rest};
-decode_col_spec(<<16#F:?short, Rest/binary>>) -> {timeuuid, Rest};
-decode_col_spec(<<16#10:?short, Rest/binary>>) -> {inet, Rest};
-
-decode_col_spec(<<16#20:?short, Rest/binary>>) ->
-    {SubType, Rest1} = decode_col_spec(Rest),
-    {list, SubType, Rest1};
-
-decode_col_spec(<<16#21:?short, Rest/binary>>) ->
-    {SubType, Rest1} = decode_col_spec(Rest),
-    {map, SubType, Rest1};
-
-decode_col_spec(<<16#22:?short, Rest/binary>>) ->
-    {SubType, Rest1} = decode_col_spec(Rest),
-    {set, SubType, Rest1}.
 
 receive_frame(Socket) ->
     case gen_tcp:recv(Socket, 0) of
