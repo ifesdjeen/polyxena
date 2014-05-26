@@ -111,13 +111,27 @@ consume(col_spec, Binary) ->
 bytes_to_type({custom, _}, Bytes) -> Bytes;
 bytes_to_type(ascii, <<Bytes/binary>>)       -> binary_to_list(Bytes);
 bytes_to_type(varchar, <<Bytes/binary>>)     -> binary_to_list(Bytes);
-bytes_to_type(int, <<Int:?int>>)  -> Int.
+bytes_to_type(bigint, <<Bytes:?bigint>>)     -> Bytes;
+bytes_to_type(blob, <<Bytes/binary>>)        -> Bytes;
+bytes_to_type(int, <<Int:?int>>)             -> Int.
+%% bytes_to_type(boolean, <<>>) -> ;
+%% bytes_to_type(counter, <<>>) -> ;
+%% bytes_to_type(decimal, <<>>) -> ;
+%% bytes_to_type(double, <<>>) -> ;
+%% bytes_to_type(float, <<>>) -> ;
+%% bytes_to_type(int, <<>>) -> ;
+%% bytes_to_type(text, <<>>) -> ;
+%% bytes_to_type(timestamp, <<>>) -> ;
+%% bytes_to_type(uuid, <<>>) -> ;
+%% bytes_to_type(varint, <<>>) -> ;
+%% bytes_to_type(timeuuid, <<>>) -> ;
+%% bytes_to_type(inet, <<>>) -> ;
+%% bytes_to_type(list, <<>>) -> ;
+%% bytes_to_type(map, <<>>) -> ;
+%% bytes_to_type(set, <<>>) -> .
 
 
 column_name_to_str(<<Bytes/binary>>)         -> binary_to_list(Bytes).
-
-
-
 
 %%
 %% Decoding

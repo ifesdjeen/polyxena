@@ -48,9 +48,10 @@
 -define(frame_part_opcode, 8/unsigned-integer).
 
 
--define(short, 1/big-unsigned-unit:16).
--define(int,   1/big-signed-unit:32).
--define(long,  1/big-signed-unit:64).
+-define(short,  1/big-unsigned-unit:16).
+-define(int,    1/big-signed-unit:32).
+-define(long,   1/big-signed-unit:64).
+-define(bigint, 1/big-signed-unit:64).
 
 
 -record(frame, {
