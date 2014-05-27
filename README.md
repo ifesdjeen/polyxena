@@ -40,7 +40,7 @@ polyxena:execute_cql(pool1, "INSERT INTO \"users\" (name, age) VALUES ('Alex3', 
 polyxena:execute_cql(pool1, "SELECT * from users").
 ```
 
-## Contributing
+## Copyright
 
 Copyright (c) Alex Petrov
 
