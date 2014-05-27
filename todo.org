@@ -6,3 +6,8 @@
 * TODO Figure out an API for bootstrapping
 * TODO Add Event subscription
 * TODO Add all types
+* TODO Add custer connection option
+* TODO Add reconnection policy
+* TODO Add retry policies 
+* TODO Add load-balancing policy
+* TODO Add configurable connections per host
