@@ -36,7 +36,7 @@ handle_cast(_Msg, State) ->
 handle_info(_Info, State) ->
     {noreply, State}.
 
-terminate(_Reason, #state{conn=Conn}) ->
+terminate(_Reason, #state{conn=_}) ->
     %% ok = pgsql:close(Conn),
     ok.
 

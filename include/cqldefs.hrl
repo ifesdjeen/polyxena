@@ -68,5 +68,5 @@
 %% Debug-only
 %%
 
-type_to_atom(?FRAME_TYPE_REQUEST)  -> request;
-type_to_atom(?FRAME_TYPE_RESPONSE) -> response.
+%% type_to_atom(?FRAME_TYPE_REQUEST)  -> request;
+%% type_to_atom(?FRAME_TYPE_RESPONSE) -> response.

@@ -161,8 +161,9 @@ decode_result_kind(?RESULT_KIND_SCHEMA_CHANGE,
                      Length3:?short,
                      Str3:Length3/binary-unit:8,
                      _/binary>>) ->
+    Command = binary_to_list(Str1),
     {schema_change,
-     binary_to_list(Str1),
+     command_to_atom(Command),
      binary_to_list(Str2),
      binary_to_list(Str3)};
 
@@ -178,7 +179,7 @@ decode_result_kind(?RESULT_KIND_ROWS, Binary) ->
                                                                       string,
                                                                       {col_specs, ColumnsCount},
                                                                       int]),
-            {Rows, Rest6}        = consume({rows, RowsCount, ColumnsCount, ColumnSpecs}, Rest5),
+            {Rows, _}        = consume({rows, RowsCount, ColumnsCount, ColumnSpecs}, Rest5),
             {binary_to_list(Keyspace),
              binary_to_list(Table),
              ColumnSpecs,
@@ -283,3 +284,6 @@ establish_connection(Host, Port) ->
 execute_cql(Connection, Query) ->
     send_frame(Connection, query_frame(Query, ?CONSISTENCY_ONE)),
     receive_frame(Connection).
+
+command_to_atom("CREATED") -> created;
+command_to_atom("DROPPED") -> dropped.

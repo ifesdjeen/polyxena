@@ -14,9 +14,16 @@ cql_encode(long, Long)    when is_integer(Long)    -> <<Long:?long>>;
 cql_encode(string, Str)   when is_binary(Str) ->
     [cql_encode(short, size(Str)), Str];
 
+cql_encode(string, Str)   when is_list(Str) ->
+    [cql_encode(short, length(Str)), list_to_binary(Str)];
+
 cql_encode(long_string, Str) when is_binary(Str) ->
     Size = size(Str),
     [cql_encode(int, Size), Str];
+
+cql_encode(long_string, Str) when is_list(Str) ->
+    Size = length(Str),
+    [cql_encode(int, Size), list_to_binary(Str)];
 
 cql_encode(string_list, List) when is_list(List) ->
     Strings = lists:foldl(fun(Item, Acc) ->
