@@ -113,11 +113,13 @@ bytes_to_type(ascii, <<Bytes/binary>>)       -> binary_to_list(Bytes);
 bytes_to_type(varchar, <<Bytes/binary>>)     -> binary_to_list(Bytes);
 bytes_to_type(bigint, <<Bytes:?bigint>>)     -> Bytes;
 bytes_to_type(blob, <<Bytes/binary>>)        -> Bytes;
-bytes_to_type(int, <<Int:?int>>)             -> Int.
-%% bytes_to_type(boolean, <<>>) -> ;
+bytes_to_type(int, <<Int:?int>>)             -> Int;
+bytes_to_type(double, <<DoubleValue:64/float>>)-> DoubleValue;
+bytes_to_type(float, <<FloatValue:32/float>>)-> FloatValue;
+bytes_to_type(boolean, <<0>>)                -> false;
+bytes_to_type(boolean, <<1>>)                -> true.
 %% bytes_to_type(counter, <<>>) -> ;
 %% bytes_to_type(decimal, <<>>) -> ;
-%% bytes_to_type(double, <<>>) -> ;
 %% bytes_to_type(float, <<>>) -> ;
 %% bytes_to_type(int, <<>>) -> ;
 %% bytes_to_type(text, <<>>) -> ;
@@ -174,17 +176,15 @@ decode_result_kind(?RESULT_KIND_ROWS, Binary) ->
     {[Flags, ColumnsCount], Rest1} = consume_specs(Binary, [rows_flags, int]),
     HasGlobalTablesSpec   = has_flag(global_tables_spec, Flags),
     if HasGlobalTablesSpec ->
-            {[Keyspace, Table,
+            {[_, _,
               ColumnSpecs, RowsCount], Rest5} = consume_specs(Rest1, [string,
                                                                       string,
                                                                       {col_specs, ColumnsCount},
                                                                       int]),
-            {Rows, _}        = consume({rows, RowsCount, ColumnsCount, ColumnSpecs}, Rest5),
-            {binary_to_list(Keyspace),
-             binary_to_list(Table),
-             ColumnSpecs,
-             RowsCount,
-             Rows};
+            {Rows, _}                         = consume({rows, RowsCount,
+                                                         ColumnsCount, ColumnSpecs},
+                                                        Rest5),
+            Rows;
        true -> []
     end.
 

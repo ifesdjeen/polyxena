@@ -29,18 +29,25 @@
 
 groups() ->
     [
-     {encoding, [{repeat, 5}],
+     {encoding, [{repeat, 1}],
       [test_encode_string
        , test_encode_map
        , test_encode_string_list
       ]}
-     , {schema, [{repeat, 5}],
+     , {schema, [{repeat, 1}],
         [create_drop_keyspace_test
+        ]}
+     , {data_types, [{repeat, 1}],
+        [
+         boolean_field_test
+         , double_field_test
+         , float_field_test
         ]}
     ].
 
 all() -> [{group, encoding}
           , {group, schema}
+          , {group, data_types}
           %% test_encode_string, test_encode_map, test_encode_string_list
           %% , create_drop_keyspace_test
           ].
@@ -80,17 +87,32 @@ test_encode_string_list(_Config) ->
                [<<6:?short>>, << "Value1" >>]]].
 
 create_drop_keyspace_test(_Config) ->
-    %% application:set_env(polyxena, pools,
-    %%                     [{pool1, [{size, 10}, {max_overflow, 0}],
-    %%                       [{hostname, "192.168.60.15"},
-    %%                        {port, 9042},
-    %%                        {keyspace, "cassaforte_keyspace"}
-    %%                       ]}]),
-
-    %% application:start(polyxena),
     polyxena_sup:start_link(),
     {ok,{schema_change,created,"polyxena_001",[]}} = polyxena:execute_cql(pool1, "CREATE KEYSPACE \"polyxena_001\" WITH replication = {'class' : 'SimpleStrategy', 'replication_factor' : 1};"),
     {ok,{schema_change, dropped,"polyxena_001",[]}} = polyxena:execute_cql(pool1, "DROP KEYSPACE \"polyxena_001\";").
+
+boolean_field_test(_Config) ->
+    polyxena_sup:start_link(),
+    polyxena:execute_cql(pool1, "INSERT INTO \"test_boolean\" (pk, f) VALUES (1, true);"),
+    polyxena:execute_cql(pool1, "INSERT INTO \"test_boolean\" (pk, f) VALUES (2, false);"),
+    Result = polyxena:execute_cql(pool1, "SELECT * FROM test_boolean;"),
+    io:format("asd ~p", [Result]),
+    {ok, [[{"f",false},{"pk",2}],[{"f",true},{"pk",1}]]} = Result.
+
+double_field_test(_Config) ->
+    polyxena_sup:start_link(),
+    polyxena:execute_cql(pool1, "INSERT INTO \"test_double\" (pk, f) VALUES (1, 1.123);"),
+    polyxena:execute_cql(pool1, "INSERT INTO \"test_double\" (pk, f) VALUES (2, 5.678);"),
+    Result = polyxena:execute_cql(pool1, "SELECT * FROM test_double;"),
+    {ok,[[{"f",5.678},{"pk",2}],[{"f",1.123},{"pk",1}]]} = Result.
+
+float_field_test(_Config) ->
+    polyxena_sup:start_link(),
+    polyxena:execute_cql(pool1, "INSERT INTO \"test_float\" (pk, f) VALUES (1, 1.123);"),
+    polyxena:execute_cql(pool1, "INSERT INTO \"test_float\" (pk, f) VALUES (2, 5.678);"),
+    Result = polyxena:execute_cql(pool1, "SELECT * FROM test_float;"),
+    {ok,[[{"f",5.678},{"pk",2}],[{"f",1.123},{"pk",1}]]} = Result.
+
 
 init_per_suite(_Config) ->
     application:set_env(polyxena, pools,
@@ -109,3 +131,25 @@ end_per_suite(_Config) ->
 
 %% suite() ->
 %%     [{timetrap,{seconds,100}}].
+
+
+
+init_per_group(data_types, _Config) ->
+    polyxena_sup:start_link(),
+    polyxena:execute_cql(pool1, "CREATE TABLE \"test_boolean\" (pk int, f boolean, PRIMARY KEY (pk));"),
+    polyxena:execute_cql(pool1, "CREATE TABLE \"test_double\" (pk int, f double, PRIMARY KEY (pk));"),
+    polyxena:execute_cql(pool1, "CREATE TABLE \"test_float\" (pk int, f double, PRIMARY KEY (pk));"),
+    _Config;
+
+init_per_group(_Group, _Config) ->
+    _Config.
+
+end_per_group(data_types, _Config) ->
+    polyxena_sup:start_link(),
+    polyxena:execute_cql(pool1, "DROP TABLE \"test_boolean\";"),
+    polyxena:execute_cql(pool1, "DROP TABLE \"test_double\";"),
+    polyxena:execute_cql(pool1, "DROP TABLE \"test_float\";"),
+    _Config;
+
+end_per_group(_Group, _Config) ->
+    _Config.
