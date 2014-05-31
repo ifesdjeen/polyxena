@@ -17,9 +17,11 @@ tryout() ->
     %% polyxena:execute_cql(pool1, "DROP KEYSPACE \"cassaforte_keyspace\";"),
     %% polyxena:execute_cql(pool1, "CREATE KEYSPACE \"cassaforte_keyspace\" WITH replication = {'class' : 'SimpleStrategy', 'replication_factor' : 1};"),
     polyxena:execute_cql(pool1, "USE \"cassaforte_keyspace\";"),
-    %% polyxena:execute_cql(pool1, "CREATE TABLE \"test_001\" (pk int, f double, PRIMARY KEY (pk));"),
-    polyxena:execute_cql(pool1, "INSERT INTO \"test_001\" (pk, f) VALUES (1, 1.123);"),
-    polyxena:execute_cql(pool1, "INSERT INTO \"test_001\" (pk, f) VALUES (2, 5.678);"),
+    %% polyxena:execute_cql(pool1, "DROP TABLE \"test_001\";"),
+    %% polyxena:execute_cql(pool1, "CREATE TABLE \"test_001\" (pk int, f float, PRIMARY KEY (pk));"),
+    %% polyxena:execute_cql(pool1, "INSERT INTO \"test_001\" (pk, f) VALUES (1, 123.12345678);"),
+    %% polyxena:execute_cql(pool1, "INSERT INTO \"test_001\" (pk, f) VALUES (2, 1.123);"),
+    %% polyxena:execute_cql(pool1, "INSERT INTO \"test_001\" (pk, f) VALUES (3, 1.123);"),
     polyxena:execute_cql(pool1, "SELECT * FROM test_001;").
 
 

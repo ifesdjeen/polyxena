@@ -62,6 +62,7 @@ consume(bytes, <<Length:?int, Str:Length/binary-unit:8, Rest/binary>>) ->
 consume({column, ColumnIndex, ColumnSpecs}, Binary) ->
     {ColumnNameRaw, ColumnType}   = lists:nth(ColumnIndex, ColumnSpecs),
     {DecodedRow, Rest}            = consume(bytes, Binary),
+    io:format("Type: ~p, row: ~p ~n", [ColumnType, DecodedRow]),
     Value                         = bytes_to_type(ColumnType, DecodedRow),
     ColumnName                    = column_name_to_str(ColumnNameRaw),
     {{ColumnName, Value}, Rest};
@@ -114,13 +115,15 @@ bytes_to_type(varchar, <<Bytes/binary>>)     -> binary_to_list(Bytes);
 bytes_to_type(bigint, <<Bytes:?bigint>>)     -> Bytes;
 bytes_to_type(blob, <<Bytes/binary>>)        -> Bytes;
 bytes_to_type(int, <<Int:?int>>)             -> Int;
-bytes_to_type(double, <<DoubleValue:64/float>>)-> DoubleValue;
-bytes_to_type(float, <<FloatValue:32/float>>)-> FloatValue;
+bytes_to_type(double, <<DoubleValue:64/float>>) -> DoubleValue;
+bytes_to_type(float, <<FloatValue:32/float>>)   -> FloatValue;
 bytes_to_type(boolean, <<0>>)                -> false;
-bytes_to_type(boolean, <<1>>)                -> true.
-%% bytes_to_type(counter, <<>>) -> ;
+bytes_to_type(boolean, <<1>>)                -> true;
+bytes_to_type(decimal, <<Scale:?int, Value/binary>>) ->
+    math:pow(10, Scale) * Value.
 %% bytes_to_type(decimal, <<>>) -> ;
-%% bytes_to_type(float, <<>>) -> ;
+%% bytes_to_type(counter, <<>>) -> ;
+
 %% bytes_to_type(int, <<>>) -> ;
 %% bytes_to_type(text, <<>>) -> ;
 %% bytes_to_type(timestamp, <<>>) -> ;

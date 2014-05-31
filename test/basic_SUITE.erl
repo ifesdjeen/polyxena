@@ -106,12 +106,20 @@ double_field_test(_Config) ->
     Result = polyxena:execute_cql(pool1, "SELECT * FROM test_double;"),
     {ok,[[{"f",5.678},{"pk",2}],[{"f",1.123},{"pk",1}]]} = Result.
 
+
+to_imprecise_32_float(Float) ->
+    Binary = <<Float:32/float>>,
+    polyxena_connection:bytes_to_type(float, Binary).
+
 float_field_test(_Config) ->
     polyxena_sup:start_link(),
     polyxena:execute_cql(pool1, "INSERT INTO \"test_float\" (pk, f) VALUES (1, 1.123);"),
     polyxena:execute_cql(pool1, "INSERT INTO \"test_float\" (pk, f) VALUES (2, 5.678);"),
+    F1 = to_imprecise_32_float(5.678),
+    F2 = to_imprecise_32_float(1.123),
     Result = polyxena:execute_cql(pool1, "SELECT * FROM test_float;"),
-    {ok,[[{"f",5.678},{"pk",2}],[{"f",1.123},{"pk",1}]]} = Result.
+    {ok,[[{"f",F1},{"pk",2}],
+         [{"f",F2},{"pk",1}]]} = Result.
 
 
 init_per_suite(_Config) ->
@@ -138,7 +146,8 @@ init_per_group(data_types, _Config) ->
     polyxena_sup:start_link(),
     polyxena:execute_cql(pool1, "CREATE TABLE \"test_boolean\" (pk int, f boolean, PRIMARY KEY (pk));"),
     polyxena:execute_cql(pool1, "CREATE TABLE \"test_double\" (pk int, f double, PRIMARY KEY (pk));"),
-    polyxena:execute_cql(pool1, "CREATE TABLE \"test_float\" (pk int, f double, PRIMARY KEY (pk));"),
+    polyxena:execute_cql(pool1, "CREATE TABLE \"test_float\" (pk int, f float, PRIMARY KEY (pk));"),
+    polyxena:execute_cql(pool1, "CREATE TABLE \"test_decimal\" (pk int, f decimal, PRIMARY KEY (pk));"),
     _Config;
 
 init_per_group(_Group, _Config) ->
@@ -149,6 +158,7 @@ end_per_group(data_types, _Config) ->
     polyxena:execute_cql(pool1, "DROP TABLE \"test_boolean\";"),
     polyxena:execute_cql(pool1, "DROP TABLE \"test_double\";"),
     polyxena:execute_cql(pool1, "DROP TABLE \"test_float\";"),
+    polyxena:execute_cql(pool1, "DROP TABLE \"test_decimal\";"),
     _Config;
 
 end_per_group(_Group, _Config) ->
