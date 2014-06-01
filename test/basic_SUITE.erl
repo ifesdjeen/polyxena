@@ -43,6 +43,7 @@ groups() ->
          , double_field_test
          , float_field_test
          , decimal_field_test
+         , text_field_test
         ]}
     ].
 
@@ -134,7 +135,13 @@ decimal_field_test(_Config) ->
     {ok,[[{"f",F1},{"pk",2}],
          [{"f",F2},{"pk",1}]]} = Result.
 
-
+text_field_test(_Config) ->
+    polyxena_sup:start_link(),
+    polyxena:execute_cql(pool1, "INSERT INTO \"test_text\" (pk, f) VALUES (1, 'asd');"),
+    polyxena:execute_cql(pool1, "INSERT INTO \"test_text\" (pk, f) VALUES (2, 'bsd');"),
+    Result = polyxena:execute_cql(pool1, "SELECT * FROM test_text;"),
+    {ok,[[{"f","bsd"},{"pk",2}]
+         ,[{"f","asd"},{"pk",1}]]} = Result.
 
 init_per_suite(_Config) ->
     application:set_env(polyxena, pools,
@@ -162,6 +169,7 @@ init_per_group(data_types, _Config) ->
     polyxena:execute_cql(pool1, "CREATE TABLE \"test_double\" (pk int, f double, PRIMARY KEY (pk));"),
     polyxena:execute_cql(pool1, "CREATE TABLE \"test_float\" (pk int, f float, PRIMARY KEY (pk));"),
     polyxena:execute_cql(pool1, "CREATE TABLE \"test_decimal\" (pk int, f decimal, PRIMARY KEY (pk));"),
+    polyxena:execute_cql(pool1, "CREATE TABLE \"test_text\" (pk int, f text, PRIMARY KEY (pk));"),
     _Config;
 
 init_per_group(_Group, _Config) ->
@@ -173,6 +181,7 @@ end_per_group(data_types, _Config) ->
     polyxena:execute_cql(pool1, "DROP TABLE \"test_double\";"),
     polyxena:execute_cql(pool1, "DROP TABLE \"test_float\";"),
     polyxena:execute_cql(pool1, "DROP TABLE \"test_decimal\";"),
+    polyxena:execute_cql(pool1, "DROP TABLE \"test_text\";"),
     _Config;
 
 end_per_group(_Group, _Config) ->
