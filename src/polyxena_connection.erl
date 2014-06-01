@@ -108,7 +108,6 @@ consume(col_spec, Binary) ->
             {{set, SubType}, Rest1}
     end.
 
-
 bytes_to_type({custom, _}, Bytes) -> Bytes;
 bytes_to_type(ascii, <<Bytes/binary>>)       -> binary_to_list(Bytes);
 bytes_to_type(varchar, <<Bytes/binary>>)     -> binary_to_list(Bytes);
@@ -119,7 +118,9 @@ bytes_to_type(double, <<DoubleValue:64/float>>) -> DoubleValue;
 bytes_to_type(float, <<FloatValue:32/float>>)   -> FloatValue;
 bytes_to_type(boolean, <<0>>)                -> false;
 bytes_to_type(boolean, <<1>>)                -> true;
-bytes_to_type(decimal, <<Scale:?int, Value/binary>>) ->
+bytes_to_type(decimal, <<Scale:?int, RawValue/binary>>) ->
+    ValueSize = byte_size(RawValue) * 8,
+    <<Value:ValueSize/integer>> = RawValue,
     math:pow(10, Scale) * Value.
 %% bytes_to_type(decimal, <<>>) -> ;
 %% bytes_to_type(counter, <<>>) -> ;

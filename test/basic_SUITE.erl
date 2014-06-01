@@ -42,6 +42,7 @@ groups() ->
          boolean_field_test
          , double_field_test
          , float_field_test
+         , decimal_field_test
         ]}
     ].
 
@@ -106,7 +107,6 @@ double_field_test(_Config) ->
     Result = polyxena:execute_cql(pool1, "SELECT * FROM test_double;"),
     {ok,[[{"f",5.678},{"pk",2}],[{"f",1.123},{"pk",1}]]} = Result.
 
-
 to_imprecise_32_float(Float) ->
     Binary = <<Float:32/float>>,
     polyxena_connection:bytes_to_type(float, Binary).
@@ -120,6 +120,20 @@ float_field_test(_Config) ->
     Result = polyxena:execute_cql(pool1, "SELECT * FROM test_float;"),
     {ok,[[{"f",F1},{"pk",2}],
          [{"f",F2},{"pk",1}]]} = Result.
+
+to_decimal(Scale, Value) ->
+    math:pow(10, Scale) * Value.
+
+decimal_field_test(_Config) ->
+    polyxena_sup:start_link(),
+    polyxena:execute_cql(pool1, "INSERT INTO \"test_decimal\" (pk, f) VALUES (1, 1.123);"),
+    polyxena:execute_cql(pool1, "INSERT INTO \"test_decimal\" (pk, f) VALUES (2, 5.678);"),
+    F1 = to_decimal(3, 5678),
+    F2 = to_decimal(3, 1123),
+    Result = polyxena:execute_cql(pool1, "SELECT * FROM test_decimal;"),
+    {ok,[[{"f",F1},{"pk",2}],
+         [{"f",F2},{"pk",1}]]} = Result.
+
 
 
 init_per_suite(_Config) ->
