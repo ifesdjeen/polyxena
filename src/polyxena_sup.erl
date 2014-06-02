@@ -28,8 +28,8 @@ init([]) ->
 
 init(Pools) ->
     PoolSpecs = lists:map(fun({Name, SizeArgs, WorkerArgs}) ->
-				  PoolArgs = [{name, {local, Name}},
-                      {worker_module, polyxena_worker}] ++ SizeArgs,
-				  poolboy:child_spec(Name, PoolArgs, WorkerArgs)
-			  end, Pools),
+                                  PoolArgs = [{name, {local, Name}},
+                                              {worker_module, polyxena_worker}] ++ SizeArgs,
+                                  poolboy:child_spec(Name, PoolArgs, WorkerArgs)
+                          end, Pools),
     {ok, {{one_for_one, 10, 10}, PoolSpecs}}.

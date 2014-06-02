@@ -1,7 +1,7 @@
-%%%'   HEADER
+%%% HEADER
 %%% @author Alex P <alex@clojurewerkz.org>
 %%% @since
-%%% @copyright 2014 Susan Potter
+%%% @copyright 2014 Alex P
 %%% @doc
 %%% @end
 -module(basic_SUITE).
@@ -44,6 +44,7 @@ groups() ->
          , float_field_test
          , decimal_field_test
          , text_field_test
+         , timestamp_field_test
         ]}
     ].
 
@@ -143,6 +144,14 @@ text_field_test(_Config) ->
     {ok,[[{"f","bsd"},{"pk",2}]
          ,[{"f","asd"},{"pk",1}]]} = Result.
 
+timestamp_field_test(_Config) ->
+    polyxena_sup:start_link(),
+    polyxena:execute_cql(pool1, "INSERT INTO \"test_timestamp\" (pk, f) VALUES (1, 1401745213794);"),
+    polyxena:execute_cql(pool1, "INSERT INTO \"test_timestamp\" (pk, f) VALUES (2, 1401745227973);"),
+    Result = polyxena:execute_cql(pool1, "SELECT * FROM test_timestamp;"),
+    {ok,[[{"f", 1401745227973},{"pk",2}]
+         ,[{"f", 1401745213794},{"pk",1}]]} = Result.
+
 init_per_suite(_Config) ->
     application:set_env(polyxena, pools,
                         [{pool1, [{size, 10}, {max_overflow, 0}],
@@ -170,6 +179,7 @@ init_per_group(data_types, _Config) ->
     polyxena:execute_cql(pool1, "CREATE TABLE \"test_float\" (pk int, f float, PRIMARY KEY (pk));"),
     polyxena:execute_cql(pool1, "CREATE TABLE \"test_decimal\" (pk int, f decimal, PRIMARY KEY (pk));"),
     polyxena:execute_cql(pool1, "CREATE TABLE \"test_text\" (pk int, f text, PRIMARY KEY (pk));"),
+    polyxena:execute_cql(pool1, "CREATE TABLE \"test_timestamp\" (pk int, f timestamp, PRIMARY KEY (pk));"),
     _Config;
 
 init_per_group(_Group, _Config) ->
@@ -182,6 +192,8 @@ end_per_group(data_types, _Config) ->
     polyxena:execute_cql(pool1, "DROP TABLE \"test_float\";"),
     polyxena:execute_cql(pool1, "DROP TABLE \"test_decimal\";"),
     polyxena:execute_cql(pool1, "DROP TABLE \"test_text\";"),
+    polyxena:execute_cql(pool1, "DROP TABLE \"test_timestamp\";"),
+
     _Config;
 
 end_per_group(_Group, _Config) ->
