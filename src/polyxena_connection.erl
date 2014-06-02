@@ -62,7 +62,6 @@ consume(bytes, <<Length:?int, Str:Length/binary-unit:8, Rest/binary>>) ->
 consume({column, ColumnIndex, ColumnSpecs}, Binary) ->
     {ColumnNameRaw, ColumnType}   = lists:nth(ColumnIndex, ColumnSpecs),
     {DecodedRow, Rest}            = consume(bytes, Binary),
-    io:format("Type: ~p, row: ~p ~n", [ColumnType, DecodedRow]),
     Value                         = bytes_to_type(ColumnType, DecodedRow),
     ColumnName                    = column_name_to_str(ColumnNameRaw),
     {{ColumnName, Value}, Rest};
@@ -123,7 +122,17 @@ bytes_to_type(boolean, <<1>>)                -> true;
 bytes_to_type(decimal, <<Scale:?int, RawValue/binary>>) ->
     ValueSize = byte_size(RawValue) * 8,
     <<Value:ValueSize/integer>> = RawValue,
-    math:pow(10, Scale) * Value.
+    math:pow(10, Scale) * Value;
+
+bytes_to_type({list, SubType}, <<Amount:?short, Binary/binary>>) ->
+    consume_many(Amount,
+                 fun(_, CurrentBinary) ->
+                         {DecodedRow, Rest} = consume(bytes, CurrentBinary),
+                         io:format("$$$$$$$$$ ~p ", [DecodedRow]),
+                         {bytes_to_type(SubType, DecodedRow), Rest}
+                 end,
+                Binary).
+
 %% bytes_to_type(counter, <<>>) -> ;
 
 

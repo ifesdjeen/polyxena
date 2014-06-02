@@ -5,7 +5,7 @@
 
 tryout() ->
     application:set_env(polyxena, pools,
-                        [{pool1, [{size, 10}, {max_overflow, 0}],
+                        [{pool1, [{size, 1}, {max_overflow, 0}],
                           [{hostname, "192.168.60.15"},
                            {port, 9042},
                            {keyspace, "cassaforte_keyspace"}
@@ -17,10 +17,9 @@ tryout() ->
     %% polyxena:execute_cql(pool1, "DROP KEYSPACE \"cassaforte_keyspace\";"),
     %% polyxena:execute_cql(pool1, "CREATE KEYSPACE \"cassaforte_keyspace\" WITH replication = {'class' : 'SimpleStrategy', 'replication_factor' : 1};"),
     polyxena:execute_cql(pool1, "USE \"cassaforte_keyspace\";"),
-    polyxena:execute_cql(pool1, "CREATE TABLE \"test_decimal\" (pk int, f decimal, PRIMARY KEY (pk));"),
-    polyxena:execute_cql(pool1, "INSERT INTO \"test_decimal\" (pk, f) VALUES (1, 1.123);"),
-    polyxena:execute_cql(pool1, "INSERT INTO \"test_decimal\" (pk, f) VALUES (2, 5.678);"),
-    polyxena:execute_cql(pool1, "SELECT * FROM test_decimal;").
+    % polyxena:execute_cql(pool1, "CREATE TABLE \"test_list\" (pk int, f list<int>, PRIMARY KEY (pk));"),
+    polyxena:execute_cql(pool1, "INSERT INTO \"test_list\" (pk, f) VALUES (1, [1,2,3]);"),
+    polyxena:execute_cql(pool1, "SELECT * FROM test_list;").
 
 
     %% polyxena:execute_cql(pool1, "DROP KEYSPACE \"cassaforte_keyspace\";").
