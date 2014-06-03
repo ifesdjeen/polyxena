@@ -59,6 +59,10 @@ consume({rows, RowsCount, ColumnsCount, ColumnSpecs}, Binary) ->
 consume(bytes, <<Length:?int, Str:Length/binary-unit:8, Rest/binary>>) ->
     {Str, Rest};
 
+consume(bytes_short, <<Length:?short, Str:Length/binary-unit:8, Rest/binary>>) ->
+    {Str, Rest};
+
+
 consume({column, ColumnIndex, ColumnSpecs}, Binary) ->
     {ColumnNameRaw, ColumnType}   = lists:nth(ColumnIndex, ColumnSpecs),
     {DecodedRow, Rest}            = consume(bytes, Binary),
@@ -125,13 +129,21 @@ bytes_to_type(decimal, <<Scale:?int, RawValue/binary>>) ->
     math:pow(10, Scale) * Value;
 
 bytes_to_type({list, SubType}, <<Amount:?short, Binary/binary>>) ->
-    consume_many(Amount,
-                 fun(_, CurrentBinary) ->
-                         {DecodedRow, Rest} = consume(bytes, CurrentBinary),
-                         io:format("$$$$$$$$$ ~p ", [DecodedRow]),
-                         {bytes_to_type(SubType, DecodedRow), Rest}
-                 end,
-                Binary).
+    {Res, _ } = consume_many(Amount,
+                             fun(_, CurrentBinary) ->
+                                     {DecodedRow, Rest} = consume(bytes_short,
+                                                                  CurrentBinary),
+                                     {bytes_to_type(SubType, DecodedRow), Rest}
+                             end,
+                             Binary),
+    lists:reverse(Res).
+
+dump_bin(Bin) ->
+    R = [[mask_invisiable_chars(B) || << B >> <= Bin]],
+    io:format("===BINARY===~n~s~n===BINARY===~n", [R]).
+
+mask_invisiable_chars(X) when (X >= 32 andalso X < 128) -> X;
+mask_invisiable_chars(_) -> $..
 
 %% bytes_to_type(counter, <<>>) -> ;
 
