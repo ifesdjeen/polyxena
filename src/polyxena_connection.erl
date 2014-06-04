@@ -104,8 +104,8 @@ consume(col_spec, Binary) ->
             {SubType, Rest1} = consume(col_spec, Rest),
             {{list, SubType}, Rest1};
         <<16#21:?short, Rest/binary>> ->
-            {SubType, Rest1} = consume(col_spec, Rest),
-            {{map, SubType}, Rest1};
+            {[KeyType, ValueType], Rest1} = consume_specs(Rest, [col_spec, col_spec]),
+            {{map, KeyType, ValueType}, Rest1};
         <<16#22:?short, Rest/binary>> ->
             {SubType, Rest1} = consume(col_spec, Rest),
             {{set, SubType}, Rest1}
@@ -134,6 +134,19 @@ bytes_to_type({list, SubType}, <<Amount:?short, Binary/binary>>) ->
                                      {DecodedRow, Rest} = consume(bytes_short,
                                                                   CurrentBinary),
                                      {bytes_to_type(SubType, DecodedRow), Rest}
+                             end,
+                             Binary),
+    lists:reverse(Res);
+
+bytes_to_type({map, KeyType, ValueType}, <<Amount:?short, Binary/binary>>) ->
+    {Res, _ } = consume_many(Amount,
+                             fun(_, CurrentBinary) ->
+                                     {[K, V], Rest} = consume_specs(CurrentBinary,
+                                                                    [bytes_short,
+                                                                     bytes_short]),
+                                     {{bytes_to_type(KeyType, K),
+                                       bytes_to_type(ValueType, V)},
+                                      Rest}
                              end,
                              Binary),
     lists:reverse(Res).

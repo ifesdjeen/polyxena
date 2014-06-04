@@ -45,6 +45,8 @@ groups() ->
          , decimal_field_test
          , text_field_test
          , timestamp_field_test
+         , list_field_test
+         , map_field_test
         ]}
     ].
 
@@ -160,6 +162,16 @@ list_field_test(_Config) ->
     {ok,[[{"f", [5,6,7]},{"pk",2}]
          ,[{"f", [1,2,3]},{"pk",1}]]} = Result.
 
+map_field_test(_Config) ->
+    polyxena_sup:start_link(),
+    polyxena:execute_cql(pool1, "INSERT INTO \"test_map\" (pk, f) VALUES (1, {'a': '1', 'b': '2'});"),
+    polyxena:execute_cql(pool1, "INSERT INTO \"test_map\" (pk, f) VALUES (2, {'c': '3', 'd': '4'});"),
+    polyxena:execute_cql(pool1, "INSERT INTO \"test_map\" (pk, f) VALUES (2, [5,6,7]);"),
+    Result = polyxena:execute_cql(pool1, "SELECT * FROM test_map;"),
+    {ok,[[{"f", [{"c", "3"}, {"d", "4"}]},{"pk",2}],
+         [{"f", [{"a", "1"}, {"b", "2"}]},{"pk",1}]
+         ]} = Result.
+
 
 init_per_suite(_Config) ->
     application:set_env(polyxena, pools,
@@ -190,6 +202,7 @@ init_per_group(data_types, _Config) ->
     polyxena:execute_cql(pool1, "CREATE TABLE \"test_text\" (pk int, f text, PRIMARY KEY (pk));"),
     polyxena:execute_cql(pool1, "CREATE TABLE \"test_timestamp\" (pk int, f timestamp, PRIMARY KEY (pk));"),
     polyxena:execute_cql(pool1, "CREATE TABLE \"test_list\" (pk int, f list<int>, PRIMARY KEY (pk));"),
+    polyxena:execute_cql(pool1, "CREATE TABLE \"test_map\" (pk int, f map<varchar,varchar>, PRIMARY KEY (pk));"),
     _Config;
 
 init_per_group(_Group, _Config) ->
@@ -204,6 +217,7 @@ end_per_group(data_types, _Config) ->
     polyxena:execute_cql(pool1, "DROP TABLE \"test_text\";"),
     polyxena:execute_cql(pool1, "DROP TABLE \"test_timestamp\";"),
     polyxena:execute_cql(pool1, "DROP TABLE \"test_list\";"),
+    polyxena:execute_cql(pool1, "DROP TABLE \"test_map\";"),
     _Config;
 
 end_per_group(_Group, _Config) ->
