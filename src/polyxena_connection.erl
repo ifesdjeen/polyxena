@@ -128,7 +128,7 @@ bytes_to_type(decimal, <<Scale:?int, RawValue/binary>>) ->
     <<Value:ValueSize/integer>> = RawValue,
     math:pow(10, Scale) * Value;
 
-bytes_to_type({list, SubType}, <<Amount:?short, Binary/binary>>) ->
+bytes_to_type({collection, SubType}, <<Amount:?short, Binary/binary>>) ->
     {Res, _ } = consume_many(Amount,
                              fun(_, CurrentBinary) ->
                                      {DecodedRow, Rest} = consume(bytes_short,
@@ -137,6 +137,12 @@ bytes_to_type({list, SubType}, <<Amount:?short, Binary/binary>>) ->
                              end,
                              Binary),
     lists:reverse(Res);
+
+bytes_to_type({list, SubType}, Binary) ->
+    bytes_to_type({collection, SubType}, Binary);
+
+bytes_to_type({set, SubType}, Binary) ->
+    bytes_to_type({collection, SubType}, Binary);
 
 bytes_to_type({map, KeyType, ValueType}, <<Amount:?short, Binary/binary>>) ->
     {Res, _ } = consume_many(Amount,
