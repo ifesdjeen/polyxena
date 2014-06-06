@@ -50,6 +50,7 @@ groups() ->
          , set_field_test
          , uuid_field_test
          , varint_field_test
+         , inet_field_test
         ]}
     ].
 
@@ -202,6 +203,15 @@ varint_field_test(_Config) ->
          [{"f", 1234567890},{"pk",1}]
          ]} = Result.
 
+inet_field_test(_Config) ->
+    polyxena_sup:start_link(),
+    polyxena:execute_cql(pool1, "INSERT INTO \"test_inet\" (pk, f) VALUES (1, '192.168.0.101');"),
+    polyxena:execute_cql(pool1, "INSERT INTO \"test_inet\" (pk, f) VALUES (2, '192.168.0.102');"),
+    Result = polyxena:execute_cql(pool1, "SELECT * FROM test_inet;"),
+    {ok,[[{"f", {192, 168, 0, 102}},{"pk",2}],
+         [{"f", {192, 168, 0, 101}},{"pk",1}]
+         ]} = Result.
+
 
 init_per_suite(_Config) ->
     application:set_env(polyxena, pools,
@@ -236,6 +246,7 @@ init_per_group(data_types, _Config) ->
     polyxena:execute_cql(pool1, "CREATE TABLE \"test_set\" (pk int, f set<varchar>, PRIMARY KEY (pk));"),
     polyxena:execute_cql(pool1, "CREATE TABLE \"test_uuid\" (pk int, f uuid, PRIMARY KEY (pk));"),
     polyxena:execute_cql(pool1, "CREATE TABLE \"test_varint\" (pk int, f varint, PRIMARY KEY (pk));"),
+    polyxena:execute_cql(pool1, "CREATE TABLE \"test_inet\" (pk int, f inet, PRIMARY KEY (pk));"),
     _Config;
 
 init_per_group(_Group, _Config) ->
@@ -254,6 +265,7 @@ end_per_group(data_types, _Config) ->
     polyxena:execute_cql(pool1, "DROP TABLE \"test_set\";"),
     polyxena:execute_cql(pool1, "DROP TABLE \"test_uuid\";"),
     polyxena:execute_cql(pool1, "DROP TABLE \"test_varint\";"),
+    polyxena:execute_cql(pool1, "DROP TABLE \"test_inet\";"),
     _Config;
 
 end_per_group(_Group, _Config) ->

@@ -136,6 +136,8 @@ bytes_to_type(varint, RawValue) ->
 
 bytes_to_type(uuid, Binary) -> Binary;
 bytes_to_type(timeuuid, Binary) -> Binary;
+bytes_to_type(inet, <<First:8, Second:8, Third:8, Fourth:8>>) ->
+    {First, Second, Third, Fourth};
 
 bytes_to_type({collection, SubType}, <<Amount:?short, Binary/binary>>) ->
     {Res, _ } = consume_many(Amount,
@@ -174,7 +176,6 @@ mask_invisiable_chars(X) when (X >= 32 andalso X < 128) -> X;
 mask_invisiable_chars(_) -> $..
 
 %% bytes_to_type(counter, <<>>) -> ;
-%% bytes_to_type(varint, <<>>) -> ;
 %% bytes_to_type(inet, <<>>) -> ;
 
 
