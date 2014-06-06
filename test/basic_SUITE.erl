@@ -49,6 +49,7 @@ groups() ->
          , map_field_test
          , set_field_test
          , uuid_field_test
+         , varint_field_test
         ]}
     ].
 
@@ -192,6 +193,15 @@ uuid_field_test(_Config) ->
          [{"f",  <<244,18,228,0,196,69,17,49,189,198,3,249,231,87,235,52>>},{"pk",1}]
          ]} = Result.
 
+varint_field_test(_Config) ->
+    polyxena_sup:start_link(),
+    polyxena:execute_cql(pool1, "INSERT INTO \"test_varint\" (pk, f) VALUES (1, 1234567890);"),
+    polyxena:execute_cql(pool1, "INSERT INTO \"test_varint\" (pk, f) VALUES (2, 9876543210);"),
+    Result = polyxena:execute_cql(pool1, "SELECT * FROM test_varint;"),
+    {ok,[[{"f", 9876543210},{"pk",2}],
+         [{"f", 1234567890},{"pk",1}]
+         ]} = Result.
+
 
 init_per_suite(_Config) ->
     application:set_env(polyxena, pools,
@@ -225,6 +235,7 @@ init_per_group(data_types, _Config) ->
     polyxena:execute_cql(pool1, "CREATE TABLE \"test_map\" (pk int, f map<varchar,varchar>, PRIMARY KEY (pk));"),
     polyxena:execute_cql(pool1, "CREATE TABLE \"test_set\" (pk int, f set<varchar>, PRIMARY KEY (pk));"),
     polyxena:execute_cql(pool1, "CREATE TABLE \"test_uuid\" (pk int, f uuid, PRIMARY KEY (pk));"),
+    polyxena:execute_cql(pool1, "CREATE TABLE \"test_varint\" (pk int, f varint, PRIMARY KEY (pk));"),
     _Config;
 
 init_per_group(_Group, _Config) ->
@@ -242,6 +253,7 @@ end_per_group(data_types, _Config) ->
     polyxena:execute_cql(pool1, "DROP TABLE \"test_map\";"),
     polyxena:execute_cql(pool1, "DROP TABLE \"test_set\";"),
     polyxena:execute_cql(pool1, "DROP TABLE \"test_uuid\";"),
+    polyxena:execute_cql(pool1, "DROP TABLE \"test_varint\";"),
     _Config;
 
 end_per_group(_Group, _Config) ->

@@ -128,7 +128,14 @@ bytes_to_type(decimal, <<Scale:?int, RawValue/binary>>) ->
     <<Value:ValueSize/integer>> = RawValue,
     math:pow(10, Scale) * Value;
 
+bytes_to_type(varint, RawValue) ->
+    ValueSize = byte_size(RawValue) * 8,
+    <<Value:ValueSize/signed>> = RawValue,
+    Value;
+
+
 bytes_to_type(uuid, Binary) -> Binary;
+bytes_to_type(timeuuid, Binary) -> Binary;
 
 bytes_to_type({collection, SubType}, <<Amount:?short, Binary/binary>>) ->
     {Res, _ } = consume_many(Amount,
@@ -167,13 +174,8 @@ mask_invisiable_chars(X) when (X >= 32 andalso X < 128) -> X;
 mask_invisiable_chars(_) -> $..
 
 %% bytes_to_type(counter, <<>>) -> ;
-%% bytes_to_type(uuid, <<>>) -> ;
 %% bytes_to_type(varint, <<>>) -> ;
-%% bytes_to_type(timeuuid, <<>>) -> ;
 %% bytes_to_type(inet, <<>>) -> ;
-%% bytes_to_type(list, <<>>) -> ;
-%% bytes_to_type(map, <<>>) -> ;
-%% bytes_to_type(set, <<>>) -> .
 
 
 column_name_to_str(<<Bytes/binary>>)         -> binary_to_list(Bytes).
