@@ -48,6 +48,7 @@ groups() ->
          , list_field_test
          , map_field_test
          , set_field_test
+         , uuid_field_test
         ]}
     ].
 
@@ -182,6 +183,15 @@ set_field_test(_Config) ->
          [{"f", ["a", "c"]},{"pk",1}]
          ]} = Result.
 
+uuid_field_test(_Config) ->
+    polyxena_sup:start_link(),
+    polyxena:execute_cql(pool1, "INSERT INTO \"test_uuid\" (pk, f) VALUES (1, f412e400-c445-1131-bdc6-03f9e757eb34);"),
+    polyxena:execute_cql(pool1, "INSERT INTO \"test_uuid\" (pk, f) VALUES (2, f412e400-c445-1131-bdc6-15f9e757eb34);"),
+    Result = polyxena:execute_cql(pool1, "SELECT * FROM test_uuid;"),
+    {ok,[[{"f", <<244,18,228,0,196,69,17,49,189,198,21,249,231,87,235,52>>},{"pk",2}],
+         [{"f",  <<244,18,228,0,196,69,17,49,189,198,3,249,231,87,235,52>>},{"pk",1}]
+         ]} = Result.
+
 
 init_per_suite(_Config) ->
     application:set_env(polyxena, pools,
@@ -214,6 +224,7 @@ init_per_group(data_types, _Config) ->
     polyxena:execute_cql(pool1, "CREATE TABLE \"test_list\" (pk int, f list<int>, PRIMARY KEY (pk));"),
     polyxena:execute_cql(pool1, "CREATE TABLE \"test_map\" (pk int, f map<varchar,varchar>, PRIMARY KEY (pk));"),
     polyxena:execute_cql(pool1, "CREATE TABLE \"test_set\" (pk int, f set<varchar>, PRIMARY KEY (pk));"),
+    polyxena:execute_cql(pool1, "CREATE TABLE \"test_uuid\" (pk int, f uuid, PRIMARY KEY (pk));"),
     _Config;
 
 init_per_group(_Group, _Config) ->
@@ -230,6 +241,7 @@ end_per_group(data_types, _Config) ->
     polyxena:execute_cql(pool1, "DROP TABLE \"test_list\";"),
     polyxena:execute_cql(pool1, "DROP TABLE \"test_map\";"),
     polyxena:execute_cql(pool1, "DROP TABLE \"test_set\";"),
+    polyxena:execute_cql(pool1, "DROP TABLE \"test_uuid\";"),
     _Config;
 
 end_per_group(_Group, _Config) ->

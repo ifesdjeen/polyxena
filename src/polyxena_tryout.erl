@@ -17,10 +17,10 @@ tryout() ->
     %% polyxena:execute_cql(pool1, "DROP KEYSPACE \"cassaforte_keyspace\";"),
     %% polyxena:execute_cql(pool1, "CREATE KEYSPACE \"cassaforte_keyspace\" WITH replication = {'class' : 'SimpleStrategy', 'replication_factor' : 1};"),
     polyxena:execute_cql(pool1, "USE \"cassaforte_keyspace\";"),
-    % polyxena:execute_cql(pool1, "CREATE TABLE \"test_map\" (pk int, f map<varchar,varchar>, PRIMARY KEY (pk));"),
-    % polyxena:execute_cql(pool1, "CREATE TABLE \"test_list\" (pk int, f list<int>, PRIMARY KEY (pk));"),
-    % polyxena:execute_cql(pool1, "INSERT INTO \"test_map\" (pk, f) VALUES (1, {'a': 'b', 'c': 'd'});"),
-    polyxena:execute_cql(pool1, "SELECT * FROM test_map;").
+    %% polyxena:execute_cql(pool1, "CREATE TABLE \"test_uuid\" (pk int, f uuid, PRIMARY KEY (pk));"),
+    polyxena:execute_cql(pool1, "INSERT INTO \"test_uuid\" (pk, f) VALUES (1, f412e400-c445-1131-bdc6-03f9e757eb34);"),
+    polyxena:execute_cql(pool1, "INSERT INTO \"test_uuid\" (pk, f) VALUES (2, f412e400-c445-1131-bdc6-15f9e757eb34);"),
+    polyxena:execute_cql(pool1, "SELECT * FROM test_uuid;").
 
 
     %% polyxena:execute_cql(pool1, "DROP KEYSPACE \"cassaforte_keyspace\";").
