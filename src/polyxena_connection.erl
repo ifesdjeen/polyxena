@@ -116,6 +116,7 @@ bytes_to_type(ascii, <<Bytes/binary>>)       -> binary_to_list(Bytes);
 bytes_to_type(varchar, <<Bytes/binary>>)     -> binary_to_list(Bytes);
 bytes_to_type(text, <<Bytes/binary>>)        -> binary_to_list(Bytes);
 bytes_to_type(bigint, <<Bytes:?bigint>>)     -> Bytes;
+bytes_to_type(counter, <<Bytes:?bigint>>)    -> Bytes;
 bytes_to_type(timestamp, <<Bytes:?bigint>>)  -> Bytes;
 bytes_to_type(blob, <<Bytes/binary>>)        -> Bytes;
 bytes_to_type(int, <<Int:?int>>)             -> Int;
@@ -174,10 +175,6 @@ dump_bin(Bin) ->
 
 mask_invisiable_chars(X) when (X >= 32 andalso X < 128) -> X;
 mask_invisiable_chars(_) -> $..
-
-%% bytes_to_type(counter, <<>>) -> ;
-%% bytes_to_type(inet, <<>>) -> ;
-
 
 column_name_to_str(<<Bytes/binary>>)         -> binary_to_list(Bytes).
 
