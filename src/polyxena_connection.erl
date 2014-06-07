@@ -242,8 +242,17 @@ decode_result_kind(?RESULT_KIND_ROWS, Binary) ->
 %% Consumption Helper Function
 %%
 
+-spec consume_many(number(),
+                   fun((number(), binary()) -> {binary(), binary()}),
+                   binary()) -> {list(binary()), binary()}.
+
 consume_many(Remaining, Fn, Binary) ->
     consume_many(Remaining, Fn, Binary, []).
+
+-spec consume_many(number()
+                   , fun((number(), binary()) -> {binary(), binary()})
+                   , binary()
+                   , list()) -> {list(binary()), binary()}.
 
 consume_many(Remaining, Fn, Binary, Acc) ->
     if Remaining > 0 ->
@@ -251,6 +260,8 @@ consume_many(Remaining, Fn, Binary, Acc) ->
             consume_many(Remaining - 1, Fn, Rest, [Current | Acc]);
        Remaining == 0 -> {Acc, Binary}
     end.
+
+-spec consume_specs(binary(), [consume_ops()]) -> {[erl_type()], binary()}.
 
 consume_specs(Binary, Spec) ->
     {Result, Rest} = lists:foldl(fun(Item, {Acc, CurrentBinary}) ->
