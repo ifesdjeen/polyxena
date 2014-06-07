@@ -70,3 +70,57 @@
 
 %% type_to_atom(?FRAME_TYPE_REQUEST)  -> request;
 %% type_to_atom(?FRAME_TYPE_RESPONSE) -> response.
+
+
+-type consume_ops_simple() :: string
+                            | int
+                            | rows_flags
+                            | bytes
+                            | bytes_short
+                            | col_spec.
+
+-type consume_ops() :: consume_ops_simple()
+                     | {list, consume_ops_simple()}
+                     | {set, consume_ops_simple()}
+                     | {map, consume_ops_simple(), consume_ops_simple()}
+                     | {collection, consume_ops_simple()}
+                     | {column, integer(), list()} %% Fix list to column spec here
+                     | {col_specs, integer()}
+                     | {rows, integer(), integer(), list()} %% Fix list to column spec here
+                     | {row, integer(), list()}.
+
+-type cql_simple_type() :: ascii
+                  | bigint
+                  | blob
+                  | boolean
+                  | counter
+                  | decimal
+                  | double
+                  | float
+                  | int
+                  | text
+                  | timestamp
+                  | uuid
+                  | varchar
+                  | varint
+                  | timeuuid
+                  | inet.
+
+-type cql_type() :: cql_simple_type()
+                  | {custom, bitstring()}
+                  | {collection, cql_type()} %% "Virtual type", that we had to add to have proper typespecs
+                  | {list, cql_type()}
+                  | {map, cql_type(), {cql_type()}}
+                  | {set, cql_type()}.
+
+-type erl_type_simple() :: binary()
+                         | boolean()
+                         | integer()
+                         | float()
+                         | bitstring().
+
+-type erl_type_collection() :: [erl_type_simple()]
+                             | [{erl_type_simple(), erl_type_simple()}].
+
+-type erl_type() :: erl_type_simple()
+                  | erl_type_collection().

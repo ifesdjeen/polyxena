@@ -29,6 +29,8 @@ decode_cql_string(<<Length:?short, Str:Length/binary-unit:8, _/binary>>) ->
 %% CONSUMPTION
 %%
 
+-spec consume(consume_ops(), binary()) -> {erl_type(), binary()}.
+
 %% Decode functions may be just like consume functions just dropping out the tail
 consume(string, <<Length:?short, Str:Length/binary-unit:8, Rest/binary>>) ->
     {Str, Rest};
@@ -62,7 +64,6 @@ consume(bytes, <<Length:?int, Str:Length/binary-unit:8, Rest/binary>>) ->
 consume(bytes_short, <<Length:?short, Str:Length/binary-unit:8, Rest/binary>>) ->
     {Str, Rest};
 
-
 consume({column, ColumnIndex, ColumnSpecs}, Binary) ->
     {ColumnNameRaw, ColumnType}   = lists:nth(ColumnIndex, ColumnSpecs),
     {DecodedRow, Rest}            = consume(bytes, Binary),
@@ -76,6 +77,7 @@ consume({row, ColumnsCount, ColumnSpecs}, Binary) ->
                          consume({column, ColumnsCurrent, ColumnSpecs}, CurrentBinary)
                  end,
                  Binary);
+
 
 consume(col_spec, Binary) ->
     case Binary of
@@ -111,6 +113,9 @@ consume(col_spec, Binary) ->
             {{set, SubType}, Rest1}
     end.
 
+
+-spec bytes_to_type(cql_type(), binary()) -> erl_type().
+
 bytes_to_type({custom, _}, Bytes) -> Bytes;
 bytes_to_type(ascii, <<Bytes/binary>>)       -> binary_to_list(Bytes);
 bytes_to_type(varchar, <<Bytes/binary>>)     -> binary_to_list(Bytes);
@@ -141,13 +146,13 @@ bytes_to_type(inet, <<First:8, Second:8, Third:8, Fourth:8>>) ->
     {First, Second, Third, Fourth};
 
 bytes_to_type({collection, SubType}, <<Amount:?short, Binary/binary>>) ->
-    {Res, _ } = consume_many(Amount,
-                             fun(_, CurrentBinary) ->
-                                     {DecodedRow, Rest} = consume(bytes_short,
-                                                                  CurrentBinary),
-                                     {bytes_to_type(SubType, DecodedRow), Rest}
-                             end,
-                             Binary),
+    {Res, _} = consume_many(Amount,
+                            fun(_, CurrentBinary) ->
+                                    {DecodedRow, Rest} = consume(bytes_short,
+                                                                 CurrentBinary),
+                                    {bytes_to_type(SubType, DecodedRow), Rest}
+                            end,
+                            Binary),
     lists:reverse(Res);
 
 bytes_to_type({list, SubType}, Binary) ->
